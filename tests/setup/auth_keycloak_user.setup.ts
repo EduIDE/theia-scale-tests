@@ -11,6 +11,10 @@ const authFile = path.join(__dirname, "../../.auth/keycloak_user.json");
  * @description This function automates the login process for the Keycloak UI.
  */
 setup("Auth: Authenticate Keycloak", async ({ page }) => {
+  if (process.env.DISABLE_AUTH === "1") {
+    return;
+  }
+
   setup.slow();
   await page.goto(`/`);
 

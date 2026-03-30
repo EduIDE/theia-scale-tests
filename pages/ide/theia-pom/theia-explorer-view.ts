@@ -378,6 +378,7 @@ export class TheiaExplorerView extends TheiaView {
   async waitForVisibleFileNodes(): Promise<void> {
     while ((await this.visibleFileStatNodes(DOT_FILES_FILTER)).length === 0) {
       console.debug("Awaiting for tree nodes to appear");
+      await this.page.waitForTimeout(500);
     }
   }
 
