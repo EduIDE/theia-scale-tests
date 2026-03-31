@@ -75,3 +75,20 @@ This log tracks implementation decisions, blockers, and validated behavior for t
 
 - The screenshot concern about malformed trailing braces was valid and is addressed by the baseline writer change.
 - Session startup on test3 remains variable; timeout guard stays necessary.
+
+## 2026-03-30 — Default timing update
+
+### Changed defaults
+
+- `BENCH_STABILIZATION_WAIT_MS` reduced from `20000ms` to `5000ms`
+- `BENCH_PROBES` increased from `5` to `20`
+- warmup handling now supports an optional nudge:
+  - `BENCH_WARMUP_NUDGE_AFTER_MS=240000`
+  - `BENCH_WARMUP_TIMEOUT_MS=300000`
+- clean-state nudge threshold increased from roughly `3000ms` to roughly `5000ms`
+
+### Motivation
+
+- shorter stabilization is sufficient after the first successful clean-state confirmation
+- more probes should improve reproducibility of the warm-path measurements
+- the first warmup error now has an escape hatch on very slow runs instead of waiting passively until timeout

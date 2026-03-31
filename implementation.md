@@ -110,8 +110,11 @@ BENCH_TARGET_APP=java-17
 BENCH_OUTPUT_DIR=test-data/benchmark
 BENCH_FIXED_FILE=src/de/BubbleSort.java
 BENCH_MODE=cold # cold|warm
-BENCH_PROBES=3
+BENCH_PROBES=20
 BENCH_PROBE_TIMEOUT_MS=15000
+BENCH_WARMUP_TIMEOUT_MS=300000
+BENCH_WARMUP_NUDGE_AFTER_MS=240000
+BENCH_STABILIZATION_WAIT_MS=5000
 ```
 
 - [x] **Step 2: Add benchmark Playwright project in config**
@@ -555,6 +558,6 @@ kubectl --context parma -n test3 rollout status deployment/operator-deployment -
 
 # 4) Execute benchmark (external warm example)
 cd /Users/nikolas/BA Workdir/theia-scale-tests
-BENCH_ARCH=external BENCH_MODE=warm BENCH_RUNS=30 BENCH_PROBES=3 BENCH_PROBE_TIMEOUT_MS=15000 npx playwright test --project=benchmark
+BENCH_ARCH=external BENCH_MODE=warm BENCH_RUNS=30 BENCH_PROBES=20 BENCH_PROBE_TIMEOUT_MS=15000 npx playwright test --project=benchmark
 node scripts/aggregate-benchmark.ts
 ```
