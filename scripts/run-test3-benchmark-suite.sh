@@ -9,6 +9,10 @@ else
   BASH_BIN=bash
 fi
 
+if [[ "${BENCH_CAFFEINATED:-0}" != "1" ]] && [[ "${BENCH_USE_CAFFEINATE:-1}" == "1" ]] && [[ "$(uname -s)" == "Darwin" ]] && command -v caffeinate >/dev/null 2>&1; then
+  exec caffeinate -dimsu env BENCH_CAFFEINATED=1 "$BASH_BIN" "$0" "$@"
+fi
+
 usage() {
   cat <<'EOF'
 Usage: run-test3-benchmark-suite.sh --context <ctx> --namespace <ns> --target-app <app> --arch <name> [options]
@@ -138,6 +142,10 @@ mkdir -p "$OUTPUT_DIR"
 SUITE_ROOT="${OUTPUT_DIR}/${TARGET_APP}/${IMAGE_TYPE}"
 mkdir -p "$SUITE_ROOT"
 
+json_escape() {
+  jq -Rn --arg value "$1" '$value'
+}
+
 if [[ -z "$LANDING_URL" ]]; then
   LANDING_URL="https://${NAMESPACE}.theia-test.artemis.cit.tum.de/"
 fi
@@ -191,14 +199,19 @@ cat > "${SUITE_ROOT}/suite-metadata.json" <<EOF
 }
 EOF
 
+overall_failures=0
+
 for (( suite_run=1; suite_run<=SUITE_RUNS; suite_run++ )); do
   suite_dir="${SUITE_ROOT}/run-$(printf '%02d' "$suite_run")"
   mkdir -p "$suite_dir"
   echo "Starting suite run $(printf '%02d' "$suite_run") for ${TARGET_APP} (${IMAGE_TYPE}, ${ARCHITECTURE}/${MODE})"
+  run_failures=0
 
   for scenario in "${SCENARIOS[@]}"; do
     scenario_dir="${suite_dir}/${scenario}"
     echo "  Scenario ${scenario} -> ${scenario_dir}"
+    mkdir -p "$scenario_dir"
+    scenario_started_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     cmd=(
       "$BASH_BIN" scripts/run-test3-benchmark.sh
       --context "$KUBE_CONTEXT"
@@ -216,6 +229,70 @@ for (( suite_run=1; suite_run<=SUITE_RUNS; suite_run++ )); do
     if [[ "$HEADED" -eq 1 ]]; then
       cmd+=(--headed)
     fi
+    set +e
     "${cmd[@]}"
+    scenario_exit_code=$?
+    set -e
+
+    scenario_finished_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+    if [[ "$scenario_exit_code" -eq 0 ]]; then
+      scenario_status="passed"
+      echo "  Scenario ${scenario} passed"
+    else
+      scenario_status="failed"
+      run_failures=$((run_failures + 1))
+      overall_failures=$((overall_failures + 1))
+      echo "  Scenario ${scenario} failed with exit code ${scenario_exit_code}; continuing with next scenario" >&2
+    fi
+
+    cat > "${scenario_dir}/scenario-status.json" <<EOF
+{
+  "scenario": $(json_escape "$scenario"),
+  "targetApp": $(json_escape "$TARGET_APP"),
+  "imageType": $(json_escape "$IMAGE_TYPE"),
+  "architecture": $(json_escape "$ARCHITECTURE"),
+  "mode": $(json_escape "$MODE"),
+  "suiteRun": ${suite_run},
+  "status": $(json_escape "$scenario_status"),
+  "exitCode": ${scenario_exit_code},
+  "startedAt": $(json_escape "$scenario_started_at"),
+  "finishedAt": $(json_escape "$scenario_finished_at")
+}
+EOF
   done
+
+  if [[ "$run_failures" -eq 0 ]]; then
+    run_status="passed"
+  else
+    run_status="partial_failure"
+  fi
+
+  cat > "${suite_dir}/run-status.json" <<EOF
+{
+  "targetApp": $(json_escape "$TARGET_APP"),
+  "imageType": $(json_escape "$IMAGE_TYPE"),
+  "architecture": $(json_escape "$ARCHITECTURE"),
+  "mode": $(json_escape "$MODE"),
+  "suiteRun": ${suite_run},
+  "status": $(json_escape "$run_status"),
+  "failedScenarioCount": ${run_failures}
+}
+EOF
 done
+
+if [[ "$overall_failures" -eq 0 ]]; then
+  suite_status="passed"
+else
+  suite_status="partial_failure"
+fi
+
+cat > "${SUITE_ROOT}/suite-status.json" <<EOF
+{
+  "targetApp": $(json_escape "$TARGET_APP"),
+  "imageType": $(json_escape "$IMAGE_TYPE"),
+  "architecture": $(json_escape "$ARCHITECTURE"),
+  "mode": $(json_escape "$MODE"),
+  "status": $(json_escape "$suite_status"),
+  "failedScenarioCount": ${overall_failures}
+}
+EOF

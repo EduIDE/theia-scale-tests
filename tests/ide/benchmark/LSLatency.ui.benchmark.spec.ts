@@ -58,7 +58,7 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
     : 1;
   const setupTimeoutMs = process.env.BENCH_SETUP_TIMEOUT_MS
     ? parseInt(process.env.BENCH_SETUP_TIMEOUT_MS, 10)
-    : 300000;
+    : 600000;
   const probeTimeoutMs = process.env.BENCH_PROBE_TIMEOUT_MS
     ? parseInt(process.env.BENCH_PROBE_TIMEOUT_MS, 10)
     : 60000;
@@ -687,7 +687,7 @@ async function prepareScenarioWorkspace(
   pauseAfterFileOpenMs: number,
 ): Promise<void> {
   await ensureScenarioFilesViaTerminal(theiaApp, scenarioDefinition);
-  await openWorkspaceFile(
+  await createAndFocusWorkspaceFileViaMenu(
     page,
     theiaApp,
     scenarioDefinition.mainFilePath,
@@ -810,14 +810,6 @@ async function ensureScenarioFilesViaTerminal(
     debugLog("benchmark", "file setup: mkdir main dir done", { mainDir });
     await debugStepPause(theiaApp.page, debugStepDelayMs, "main dir created");
   }
-  debugLog("benchmark", "file setup: touch main file start", {
-    mainFilePath: scenarioDefinition.mainFilePath,
-  });
-  await terminal.submit(`: > ${shellQuote(scenarioDefinition.mainFilePath)}`);
-  debugLog("benchmark", "file setup: touch main file done", {
-    mainFilePath: scenarioDefinition.mainFilePath,
-  });
-  await debugStepPause(theiaApp.page, debugStepDelayMs, "main file created");
 
   if (scenarioDefinition.helperFilePath && scenarioDefinition.helperContent) {
     debugLog("benchmark", "file setup: helper write start", {
@@ -901,6 +893,57 @@ async function openWorkspaceFile(
   await editor.click();
   debugLog("benchmark", "explorer open: editor click done", { filePath });
   await debugStepPause(page, debugStepDelayMs, "editor focused");
+  await debugStepPause(page, pauseAfterFileOpenMs, "pause after file open");
+}
+
+async function createAndFocusWorkspaceFileViaMenu(
+  page: import("@playwright/test").Page,
+  theiaApp: TheiaApp,
+  filePath: string,
+  debugStepDelayMs = 0,
+  fileOpenTimeoutMs = 30000,
+  pauseAfterFileOpenMs = 0,
+): Promise<void> {
+  debugLog("benchmark", "file create: open explorer start", { filePath });
+  await theiaApp.openView(TheiaExplorerView);
+  debugLog("benchmark", "file create: open explorer done", { filePath });
+  await debugStepPause(page, debugStepDelayMs, "explorer opened for presentation");
+
+  debugLog("benchmark", "file create: open file menu start", { filePath });
+  const fileMenu = await theiaApp.menuBar.openMenu("File");
+  await fileMenu.clickMenuItem("New File...");
+  debugLog("benchmark", "file create: open file menu done", { filePath });
+  await debugStepPause(page, debugStepDelayMs, "new file menu opened");
+
+  const quickPick = page.getByPlaceholder("Select File Type or Enter");
+  debugLog("benchmark", "file create: quick input wait start", { filePath });
+  await quickPick.waitFor({ state: "visible", timeout: fileOpenTimeoutMs });
+  debugLog("benchmark", "file create: quick input wait done", { filePath });
+  await quickPick.fill(filePath);
+  debugLog("benchmark", "file create: quick input filled", { filePath });
+  await quickPick.press("Enter");
+  debugLog("benchmark", "file create: quick input submitted", { filePath });
+  await debugStepPause(page, debugStepDelayMs, "new file path submitted");
+
+  const fileDialog = page.locator('div[class="dialogBlock"]').first();
+  debugLog("benchmark", "file create: dialog wait start", { filePath });
+  await fileDialog.waitFor({ state: "visible", timeout: fileOpenTimeoutMs });
+  debugLog("benchmark", "file create: dialog wait done", { filePath });
+  await page.locator("#theia-dialog-shell").press("Enter");
+  debugLog("benchmark", "file create: dialog confirmed", { filePath });
+  await fileDialog.waitFor({ state: "hidden", timeout: fileOpenTimeoutMs });
+  debugLog("benchmark", "file create: dialog closed", { filePath });
+  await debugStepPause(page, debugStepDelayMs, "new file dialog confirmed");
+
+  const editor = page
+    .locator(`.monaco-editor[data-uri="file:///home/project/${filePath}"]`)
+    .first();
+  debugLog("benchmark", "file create: wait editor start", { filePath });
+  await editor.waitFor({ state: "visible", timeout: fileOpenTimeoutMs });
+  debugLog("benchmark", "file create: wait editor done", { filePath });
+  await editor.click();
+  debugLog("benchmark", "file create: editor focused", { filePath });
+  await debugStepPause(page, debugStepDelayMs, "new file editor focused");
   await debugStepPause(page, pauseAfterFileOpenMs, "pause after file open");
 }
 
