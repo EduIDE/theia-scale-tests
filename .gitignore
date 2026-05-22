@@ -16,3 +16,5 @@ node_modules/
 playwright.env
 /test-data/
 /user-data/
+
+*.DS_Store

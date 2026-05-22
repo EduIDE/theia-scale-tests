@@ -45,8 +45,9 @@ setup("Get IDE URL for JavaScript", async ({}, testInfo) => {
 async function setupIDE(language: string, testInfo: TestInfo) {
   const browser = await chromium.launch();
   let context;
+  const isAuthDisabled = process.env.DISABLE_AUTH === "1";
 
-  if (testInfo.project.name !== "local") {
+  if (testInfo.project.name !== "local" && !isAuthDisabled) {
     context = await browser.newContext({
       storageState: ".auth/keycloak_user.json",
     });
