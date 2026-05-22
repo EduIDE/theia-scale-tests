@@ -14,7 +14,7 @@ async function globalSetup(config: { projects: { name: string }[] }) {
   debugLog("global-setup", "computed auth mode", { isAuthDisabled });
 
   if (!isAuthDisabled && (!process.env.KEYCLOAK_USER || !process.env.KEYCLOAK_PWD)) {
-    throw new Error("USERNAME, or PASSWORD environment variable is not set");
+    throw new Error("KEYCLOAK_USER or KEYCLOAK_PWD environment variable is not set");
   }
 
   const isLocal = config.projects.some((project) => project.name === "local");

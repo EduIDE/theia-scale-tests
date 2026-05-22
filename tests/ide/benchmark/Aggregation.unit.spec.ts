@@ -268,4 +268,7 @@ test("resource unit parsers normalize kubectl top values", async () => {
   expect(parseCpuMillicores("1")).toBe(1000);
   expect(parseMemoryMiB("512Mi")).toBe(512);
   expect(parseMemoryMiB("1Gi")).toBe(1024);
+  expect(parseMemoryMiB("1K")).toBeCloseTo(1000 / 1024 / 1024);
+  expect(parseMemoryMiB("1M")).toBeCloseTo(1000 * 1000 / 1024 / 1024);
+  expect(parseMemoryMiB("1G")).toBeCloseTo(1000 * 1000 * 1000 / 1024 / 1024);
 });

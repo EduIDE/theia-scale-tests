@@ -63,9 +63,9 @@ export function parseMemoryMiB(rawValue) {
     ["Mi", 1],
     ["Gi", 1024],
     ["Ti", 1024 * 1024],
-    ["K", 1 / 1000 / 1024],
-    ["M", 1 / 1024],
-    ["G", 1000 / 1024],
+    ["K", 1000 / 1024 / 1024],
+    ["M", 1000 * 1000 / 1024 / 1024],
+    ["G", 1000 * 1000 * 1000 / 1024 / 1024],
   ];
   for (const [suffix, factor] of units) {
     if (rawValue.endsWith(suffix)) {

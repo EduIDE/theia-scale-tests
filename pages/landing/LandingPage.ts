@@ -45,7 +45,10 @@ export class LandingPage {
   }
 
   async login(username: string, password: string) {
-    debugLog("landing", "start login", { username, url: this.page.url() });
+    debugLog("landing", "start login", {
+      hasUsername: Boolean(username),
+      url: this.page.url(),
+    });
     await this.clickLoginButton();
     debugLog("landing", "fill username");
     await this.page.getByRole("textbox", { name: "Username" }).fill(username);
@@ -61,9 +64,9 @@ export class LandingPage {
 
   async launchLanguage(language: string) {
     const preferredTestIds = [`launch-app-${language}`, `launch-app-${language}-latest`];
-    const availableLaunchIds = await this.page
-      .locator('[data-testid^="launch-app-"]')
-      .evaluateAll((nodes) =>
+    const launchButtons = this.page.locator('[data-testid^="launch-app-"]');
+    await launchButtons.first().waitFor({ state: "visible" });
+    const availableLaunchIds = await launchButtons.evaluateAll((nodes) =>
         nodes
           .map((n) => n.getAttribute("data-testid"))
           .filter((v): v is string => Boolean(v)),

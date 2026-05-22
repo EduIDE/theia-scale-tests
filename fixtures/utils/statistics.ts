@@ -37,5 +37,5 @@ export function avg(values: number[]): number {
 
 export function max(values: number[]): number {
   assertNonEmpty(values, "max");
-  return Math.max(...values);
+  return values.reduce((acc, curr) => Math.max(acc, curr));
 }

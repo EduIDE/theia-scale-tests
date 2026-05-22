@@ -38,49 +38,80 @@ INTERVAL_SECONDS=1
 SETTLE_SECONDS=6
 HEADED=0
 
+require_value() {
+  local option="$1"
+  local value="${2:-}"
+  if [[ -z "$value" || "$value" == --* ]]; then
+    echo "${option} requires a value" >&2
+    usage >&2
+    exit 1
+  fi
+}
+
+require_positive_integer() {
+  local name="$1"
+  local value="$2"
+  if [[ ! "$value" =~ ^[0-9]+$ || "$value" -eq 0 ]]; then
+    echo "${name} must be a positive integer, got '${value}'" >&2
+    usage >&2
+    exit 1
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --context)
+      require_value "$1" "${2:-}"
       KUBE_CONTEXT="$2"
       shift 2
       ;;
     --namespace)
+      require_value "$1" "${2:-}"
       NAMESPACE="$2"
       shift 2
       ;;
     --target-app)
+      require_value "$1" "${2:-}"
       TARGET_APP="$2"
       shift 2
       ;;
     --arch)
+      require_value "$1" "${2:-}"
       ARCHITECTURE="$2"
       shift 2
       ;;
     --mode)
+      require_value "$1" "${2:-}"
       MODE="$2"
       shift 2
       ;;
     --scenario)
+      require_value "$1" "${2:-}"
       SCENARIO="$2"
       shift 2
       ;;
     --runs)
+      require_value "$1" "${2:-}"
       RUNS="$2"
       shift 2
       ;;
     --probes)
+      require_value "$1" "${2:-}"
       PROBES="$2"
       shift 2
       ;;
     --output-dir)
+      require_value "$1" "${2:-}"
       OUTPUT_DIR="$2"
       shift 2
       ;;
     --interval)
+      require_value "$1" "${2:-}"
       INTERVAL_SECONDS="$2"
       shift 2
       ;;
     --settle)
+      require_value "$1" "${2:-}"
       SETTLE_SECONDS="$2"
       shift 2
       ;;
@@ -105,6 +136,11 @@ if [[ -z "$KUBE_CONTEXT" || -z "$NAMESPACE" || -z "$TARGET_APP" || -z "$ARCHITEC
   usage >&2
   exit 1
 fi
+
+require_positive_integer "--runs" "$RUNS"
+require_positive_integer "--probes" "$PROBES"
+require_positive_integer "--interval" "$INTERVAL_SECONDS"
+require_positive_integer "--settle" "$SETTLE_SECONDS"
 
 mkdir -p "${OUTPUT_DIR}/raw"
 PLAYWRIGHT_ARGS=(tests/ide/benchmark/LSLatency.ui.benchmark.spec.ts --project=benchmark --workers=1 --reporter=line --no-deps --retries=0)

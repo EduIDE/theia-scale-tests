@@ -27,6 +27,8 @@ Options:
   --interval <seconds>      Resource polling interval passed through to run-benchmark.sh
   --settle <seconds>        Final scrape settle time passed through, default 6
   --landing-url <url>       Landing page URL for network preflight, default https://<namespace>.theia-test.artemis.cit.tum.de/
+  --prom-namespace <name>   Prometheus namespace, default cattle-monitoring-system
+  --prom-service <name>     Prometheus service, default rancher-monitoring-prometheus
   --headed                  Run Playwright headed
 EOF
 }
@@ -132,7 +134,13 @@ if [[ -z "$KUBE_CONTEXT" || -z "$NAMESPACE" || -z "$TARGET_APP" || -z "$ARCHITEC
   exit 1
 fi
 
-IFS=',' read -r -a SCENARIOS <<<"$SCENARIOS_CSV"
+IFS=',' read -r -a RAW_SCENARIOS <<<"$SCENARIOS_CSV"
+SCENARIOS=()
+for raw_scenario in "${RAW_SCENARIOS[@]}"; do
+  scenario="$(printf '%s' "$raw_scenario" | xargs)"
+  [[ -z "$scenario" ]] && continue
+  SCENARIOS+=("$scenario")
+done
 if [[ "${#SCENARIOS[@]}" -eq 0 ]]; then
   echo "At least one scenario is required" >&2
   exit 1

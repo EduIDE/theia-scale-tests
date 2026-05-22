@@ -45,6 +45,12 @@ type HoverWaitResult = {
   loadingSeen: boolean;
 };
 
+const benchmarkScenarios: BenchmarkScenario[] = [
+  "simple-type-error",
+  "import-semantic-error",
+  "hover-context",
+];
+
 test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   const outputDir = process.env.BENCH_OUTPUT_DIR || "test-data/benchmark";
   const benchmarkFile = process.env.BENCH_FIXED_FILE || "src/de/BubbleSort.java";
@@ -52,7 +58,7 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   const benchmarkClassName = path.basename(benchmarkFile, ".java") || "BenchLatency";
   const architecture = process.env.BENCH_ARCH || "external";
   const mode = process.env.BENCH_MODE || "warm";
-  const scenario = (process.env.BENCH_SCENARIO || "simple-type-error") as BenchmarkScenario;
+  const scenario = parseBenchmarkScenario(process.env.BENCH_SCENARIO);
   const run = process.env.BENCH_RUN_NUMBER
     ? parseInt(process.env.BENCH_RUN_NUMBER, 10)
     : 1;
@@ -659,8 +665,6 @@ function buildScenarioDefinition(
         label: "ArrayList",
         lineText: "List<String> names = new ArrayList<>();",
         token: "ArrayList",
-        tokenSelector:
-          "#code-editor-opener\\:file\\:\\/\\/\\/home\\/project\\/src\\/de\\/BubbleSort\\.java\\:1 > div > div.overflow-guard > div.monaco-scrollable-element.editor-scrollable.vs > div.lines-content.monaco-editor-background > div.view-lines.monaco-mouse-cursor-text > div:nth-child(7) > span > span:nth-child(10)",
       },
       {
         label: "BenchHelper",
@@ -671,8 +675,6 @@ function buildScenarioDefinition(
         label: "compute",
         lineText: "int helperResult = BenchHelper.compute(names);",
         token: "compute",
-        tokenSelector:
-          "#code-editor-opener\\:file\\:\\/\\/\\/home\\/project\\/src\\/de\\/BubbleSort\\.java\\:1 > div > div.overflow-guard > div.monaco-scrollable-element.editor-scrollable.vs > div.lines-content.monaco-editor-background > div.view-lines.monaco-mouse-cursor-text > div:nth-child(9) > span > span.mtk11",
       },
     ],
   };
@@ -1181,15 +1183,32 @@ async function waitForShellInitializedWithTimeout(
   theiaApp: TheiaApp,
   timeoutMs: number,
 ): Promise<void> {
-  await Promise.race([
-    theiaApp.waitForShellAndInitialized(),
-    new Promise((_, reject) => {
-      setTimeout(
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      theiaApp.waitForShellAndInitialized(),
+      new Promise((_, reject) => {
+        timeoutId = setTimeout(
         () => reject(new Error(`Timed out waiting for shell initialization after ${timeoutMs}ms`)),
         timeoutMs,
       );
-    }),
-  ]);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+function parseBenchmarkScenario(value = "simple-type-error"): BenchmarkScenario {
+  if (benchmarkScenarios.includes(value as BenchmarkScenario)) {
+    return value as BenchmarkScenario;
+  }
+
+  throw new Error(
+    `Unsupported BENCH_SCENARIO '${value}'. Expected one of: ${benchmarkScenarios.join(", ")}`,
+  );
 }
 
 async function nudgeEditor(
