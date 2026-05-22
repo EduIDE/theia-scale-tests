@@ -125,7 +125,7 @@ export default defineConfig({
       dependencies: ["scale-setup"],
     },
 
-    // Deterministic benchmark testing on deployed version (test3)
+    // Deterministic benchmark testing on a deployed Theia instance
     {
       name: "benchmark",
       testMatch: [/.*\.benchmark\.spec\.ts/, /.*\.unit\.spec\.ts/],

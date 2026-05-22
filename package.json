@@ -5,7 +5,7 @@
   "scripts": {
     "bench:ui": "playwright test tests/ide/benchmark/LSLatency.ui.benchmark.spec.ts --project=benchmark",
     "bench:aggregate": "node scripts/aggregate-benchmark.mjs",
-    "bench:run": "bash scripts/run-test3-benchmark.sh"
+    "bench:run": "bash scripts/run-benchmark.sh"
   },
   "keywords": [],
   "author": "",

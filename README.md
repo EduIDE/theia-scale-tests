@@ -121,10 +121,10 @@ This repository provides E2E integration tests for the [Theia Cloud IDE](https:/
   pnpm run bench:aggregate
   ```
 
-- To run the benchmark with Prometheus-backed resource monitoring against `test3`, run:
+- To run the benchmark with Prometheus-backed resource monitoring against a deployed namespace, run:
 
   ```bash
-  bash scripts/run-test3-benchmark.sh --context theia-prod --namespace test3 --target-app java-17-no-ls --arch external --mode warm --scenario import-semantic-error --runs 1 --probes 5 --headed
+  bash scripts/run-benchmark.sh --context <kube-context> --namespace <namespace> --target-app java-17-no-ls --arch external --mode warm --scenario import-semantic-error --runs 1 --probes 5 --headed
   ```
 
   The resource collector reads container CPU and memory from Prometheus cAdvisor metrics and stores them in `test-data/.../raw/resource-raw.csv`.

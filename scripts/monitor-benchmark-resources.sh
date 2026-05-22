@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: monitor-test3-resources.sh --namespace <ns> --target-app <app> [options]
+Usage: monitor-benchmark-resources.sh --namespace <ns> --target-app <app> [options]
 
 Options:
   --context <name>         kubectl context to use

@@ -15,7 +15,7 @@ fi
 
 usage() {
   cat <<'EOF'
-Usage: run-test3-benchmark-suite.sh --context <ctx> --namespace <ns> --target-app <app> --arch <name> [options]
+Usage: run-benchmark-suite.sh --context <ctx> --namespace <ns> --target-app <app> --arch <name> [options]
 
 Options:
   --mode <name>             Benchmark mode label, default warm
@@ -24,7 +24,7 @@ Options:
   --output-dir <path>       Base output directory, default test-data/benchmark-suite
   --image-type <label>      Extra grouping label for the tested deployment/image variant
   --scenarios <csv>         Scenario order, default simple-type-error,import-semantic-error,hover-context
-  --interval <seconds>      Resource polling interval passed through to run-test3-benchmark.sh
+  --interval <seconds>      Resource polling interval passed through to run-benchmark.sh
   --settle <seconds>        Final scrape settle time passed through, default 6
   --landing-url <url>       Landing page URL for network preflight, default https://<namespace>.theia-test.artemis.cit.tum.de/
   --headed                  Run Playwright headed
@@ -213,7 +213,7 @@ for (( suite_run=1; suite_run<=SUITE_RUNS; suite_run++ )); do
     mkdir -p "$scenario_dir"
     scenario_started_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     cmd=(
-      "$BASH_BIN" scripts/run-test3-benchmark.sh
+      "$BASH_BIN" scripts/run-benchmark.sh
       --context "$KUBE_CONTEXT"
       --namespace "$NAMESPACE"
       --target-app "$TARGET_APP"

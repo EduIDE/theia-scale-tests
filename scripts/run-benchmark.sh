@@ -11,7 +11,7 @@ fi
 
 usage() {
   cat <<'EOF'
-Usage: run-test3-benchmark.sh --context <ctx> --namespace <ns> --target-app <app> --arch <name> [options]
+Usage: run-benchmark.sh --context <ctx> --namespace <ns> --target-app <app> --arch <name> [options]
 
 Options:
   --mode <name>            Benchmark mode label, default warm
@@ -118,7 +118,7 @@ for (( run_number=1; run_number<=RUNS; run_number++ )); do
   run_id="${ARCHITECTURE}-${MODE}-${SCENARIO}-${run_suffix}-${timestamp}"
   echo "Starting benchmark ${run_id} for ${TARGET_APP}"
 
-  "$BASH_BIN" scripts/monitor-test3-resources.sh \
+  "$BASH_BIN" scripts/monitor-benchmark-resources.sh \
     --context "$KUBE_CONTEXT" \
     --namespace "$NAMESPACE" \
     --target-app "$TARGET_APP" \
