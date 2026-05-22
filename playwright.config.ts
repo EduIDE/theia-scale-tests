@@ -7,6 +7,14 @@ import dotenv from "dotenv";
  */
 dotenv.config({ path: `./playwright.env` });
 
+const authDisabled = process.env.DISABLE_AUTH === "1";
+const keycloakStorageState = authDisabled
+  ? undefined
+  : ".auth/keycloak_user.json";
+const artemisStorageState = authDisabled
+  ? undefined
+  : ".auth/artemis_user.json";
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -68,7 +76,7 @@ export default defineConfig({
       name: "functional-setup",
       testMatch: "**/functional.setup.ts",
       use: {
-        storageState: ".auth/keycloak_user.json",
+        storageState: keycloakStorageState,
       },
       dependencies: ["auth-keycloak-setup"],
     },
@@ -78,7 +86,7 @@ export default defineConfig({
       name: "scale-setup",
       testMatch: "**/scale.setup.ts",
       use: {
-        storageState: ".auth/keycloak_user.json",
+        storageState: keycloakStorageState,
       },
       dependencies: ["auth-keycloak-setup"],
     },
@@ -89,7 +97,7 @@ export default defineConfig({
       testMatch: /.*\.(functional|ide)\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        storageState: ".auth/keycloak_user.json",
+        storageState: keycloakStorageState,
         launchOptions: {
           slowMo: 500, //TODO: 500ms delay between actions as temp solution for slow UI
         },
@@ -109,12 +117,28 @@ export default defineConfig({
         : 60 * 1000,
       use: {
         ...devices["Desktop Chrome"],
-        storageState: ".auth/keycloak_user.json",
+        storageState: keycloakStorageState,
         launchOptions: {
           slowMo: 500, //TODO: 500ms delay between actions as temp solution for slow UI
         },
       },
       dependencies: ["scale-setup"],
+    },
+
+    // Deterministic benchmark testing on a deployed Theia instance
+    {
+      name: "benchmark",
+      testMatch: [/.*\.benchmark\.spec\.ts/, /.*\.unit\.spec\.ts/],
+      workers: 1,
+      timeout: 480 * 1000,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: keycloakStorageState,
+        launchOptions: {
+          slowMo: 0,
+        },
+      },
+      dependencies: authDisabled ? [] : ["auth-keycloak-setup"],
     },
 
     {
@@ -127,7 +151,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         bypassCSP: true,
-        storageState: ".auth/artemis_user.json",
+        storageState: artemisStorageState,
         launchOptions: {
           slowMo: 100, //TODO: 100ms delay between actions as temp solution for slow UI
           args: [

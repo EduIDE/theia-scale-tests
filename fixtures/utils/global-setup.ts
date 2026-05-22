@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { debugLog } from "./debug-logging";
 
 /**
  * Global setup for Playwright tests.
@@ -7,12 +8,17 @@ import path from "path";
  */
 async function globalSetup(config: { projects: { name: string }[] }) {
   console.log("Running global setup...");
+  debugLog("global-setup", "entered global setup");
 
-  if (!process.env.KEYCLOAK_USER || !process.env.KEYCLOAK_PWD) {
-    throw new Error("USERNAME, or PASSWORD environment variable is not set");
+  const isAuthDisabled = process.env.DISABLE_AUTH === "1";
+  debugLog("global-setup", "computed auth mode", { isAuthDisabled });
+
+  if (!isAuthDisabled && (!process.env.KEYCLOAK_USER || !process.env.KEYCLOAK_PWD)) {
+    throw new Error("KEYCLOAK_USER or KEYCLOAK_PWD environment variable is not set");
   }
 
   const isLocal = config.projects.some((project) => project.name === "local");
+  debugLog("global-setup", "detected local project", { isLocal });
 
   if (isLocal) {
     const testDataDir = path.join(process.cwd(), "test-data/functional");
@@ -49,19 +55,10 @@ async function globalSetup(config: { projects: { name: string }[] }) {
         "LANDINGPAGE_URL environment variable is not set, please set the base URL for the Theiea instance to be tested against",
       );
     }
-    if (!process.env.ARTEMIS_URL) {
-      throw new Error(
-        "ARTEMIS_URL environment variable is not set, please set the URL for the instance to be tested against",
-      );
-    }
-    if (!process.env.ARTEMIS_USER || !process.env.ARTEMIS_PWD) {
-      throw new Error(
-        "ARTEMIS_USER or ARTEMIS_PWD environment variable is not set, please set the privileged Artemis User",
-      );
-    }
   }
 
   const isScale = config.projects.some((project) => project.name === "scale");
+  debugLog("global-setup", "detected scale project", { isScale });
 
   if (isScale) {
     if (!process.env.NUM_INSTANCES) {
@@ -74,6 +71,7 @@ async function globalSetup(config: { projects: { name: string }[] }) {
   }
 
   console.log("Global setup completed.");
+  debugLog("global-setup", "global setup complete");
 }
 
 export default globalSetup;
