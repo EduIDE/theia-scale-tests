@@ -10,7 +10,20 @@ dotenv.config({
   path: path.resolve(__dirname, "../../../../../playwright.env"),
 });
 
-const numUsers = parseInt(process.env.NUM_INSTANCES!, 10);
+// NUM_INSTANCES was read with a non-null assertion and no fallback, so an
+// unset value produced parseInt(undefined) -> NaN -> arrivalRate: NaN. The
+// CI workflow never set it, so this "load test" passed in about two minutes
+// having generated no load at all, on every pull request.
+const numUsers = Number.parseInt(process.env.NUM_INSTANCES ?? "", 10);
+if (!Number.isFinite(numUsers) || numUsers < 1) {
+  throw new Error(
+    `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}. ` +
+      "Refusing to run a load test that would generate no load.",
+  );
+}
+if (!process.env.LANDINGPAGE_URL) {
+  throw new Error("LANDINGPAGE_URL is not set; there is nothing to target.");
+}
 
 export const config = {
   target: process.env.LANDINGPAGE_URL!,
@@ -18,7 +31,9 @@ export const config = {
     playwright: {
       launchOptions: {
         slowMo: 500,
-        headless: false,
+        // Headless unless explicitly asked otherwise. CI runners have no
+        // display, so headless: false meant the browser could not start.
+        headless: process.env.HEADED !== "true",
       },
       contextOptions: {
         permissions: ["clipboard-write", "clipboard-read"],

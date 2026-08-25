@@ -1,36 +1,95 @@
-name: Functional Theia Tests
+# Functional and language tests against a deployed environment.
+#
+# Previously `runs-on: [self-hosted, e2e-test]`, a label no registered runner
+# carried, so every run queued for 24 hours and was cancelled. The suite has
+# therefore not actually executed since around March. These tests drive public
+# HTTPS endpoints and need nothing cluster-local.
+
+name: Functional tests
+
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
-jobs:
-  test:
-    timeout-minutes: 60
-    runs-on: [self-hosted, e2e-test]
-    env:
-      KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
-      KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
-      ARTEMIS_URL: ${{ vars.ARTEMIS_URL }}
-      ARTEMIS_USER: ${{ secrets.ARTEMIS_USER }}
-      ARTEMIS_PWD: ${{ secrets.ARTEMIS_PWD }}
-      NUM_INSTANCES: 10
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which EduIDE environment to test
+        type: choice
+        options: [test1, test2, test3, staging]
+        default: test2
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        default: staging
+    secrets:
+      KEYCLOAK_USER:
+        required: true
+      KEYCLOAK_PWD:
+        required: true
 
+permissions:
+  contents: read
+
+jobs:
+  functional:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check out the environment manifests
+        uses: actions/checkout@v4
+        with:
+          repository: EduIDE/EduIDE-deployment
+          path: .eduide-deployment
+
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      - name: Run Playwright tests
-        run: npx playwright test --project=functional --workers=10
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Resolve the target environment
+        id: target
+        env:
+          EDUIDE_DEPLOYMENT: .eduide-deployment
+        run: |
+          set -euo pipefail
+          env_name="${{ inputs.environment || 'staging' }}"
+          url=$(./scripts/env-url.sh "$env_name")
+          echo "environment=$env_name" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "::notice::testing $env_name at $url"
+
+      - name: Run
+        env:
+          LANDINGPAGE_URL: ${{ steps.target.outputs.url }}
+          KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
+          KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
+        run: npx playwright test --project=functional --workers=4
+
       - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
+        if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ steps.target.outputs.environment }}
           path: playwright-report/
           retention-days: 30
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Functional tests"
+            echo ""
+            echo "Environment: \`${{ steps.target.outputs.environment }}\`"
+            echo "URL: ${{ steps.target.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

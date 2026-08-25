@@ -5,7 +5,13 @@
   "scripts": {
     "bench:ui": "playwright test tests/ide/benchmark/LSLatency.ui.benchmark.spec.ts --project=benchmark",
     "bench:aggregate": "node scripts/aggregate-benchmark.mjs",
-    "bench:run": "bash scripts/run-benchmark.sh"
+    "bench:run": "bash scripts/run-benchmark.sh",
+    "test": "playwright test --project=functional",
+    "test:ide": "playwright test --project=functional",
+    "test:artemis": "playwright test --project=artemis --workers=1",
+    "test:scale": "playwright test --project=scale",
+    "env-url": "./scripts/env-url.sh",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -30,7 +36,6 @@
     "@modelcontextprotocol/sdk": "^1.17.5",
     "dayjs": "^1.11.13",
     "dotenv": "^16.5.0",
-    "fs": "^0.0.1-security",
     "fs-extra": "^11.3.0",
     "uuid": "^11.1.0"
   }

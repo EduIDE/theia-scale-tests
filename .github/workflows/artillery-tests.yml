@@ -1,27 +1,82 @@
-name: Artillery Load Test
+# Artillery load test.
+#
+# This used to run on every push and pull request and pass in about two minutes
+# having generated no load whatsoever: the workflow never set NUM_INSTANCES, so
+# Artillery.ts computed parseInt(undefined) -> NaN and ran with
+# arrivalRate: NaN. It also asked for headless: false on a runner with no
+# display. A green check that means nothing is worse than no check.
+#
+# It is now manual only. A load test that spins up real IDE sessions against a
+# shared environment is not something to run automatically on every pull
+# request, and Artillery.ts now refuses to start without a valid NUM_INSTANCES.
+
+name: Artillery load test
 
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which environment to load
+        type: choice
+        options: [test1, test2, test3]
+        default: test1
+      num_instances:
+        description: Virtual users (test1 allows the most concurrent sessions)
+        type: string
+        default: "5"
+
+permissions:
+  contents: read
 
 jobs:
   artillery:
     runs-on: ubuntu-latest
-    env:
-      KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
-      KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
-
+    timeout-minutes: 60
     steps:
-      - name: Checkout repository
+      - uses: actions/checkout@v4
+
+      - name: Check out the environment manifests
         uses: actions/checkout@v4
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      - name: Execute load tests
-        uses: artilleryio/action-cli@v1
         with:
-          command: run tests/ide/scalable/artillery/Artillery.ts
+          repository: EduIDE/EduIDE-deployment
+          path: .eduide-deployment
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Resolve the target environment
+        id: target
+        env:
+          EDUIDE_DEPLOYMENT: .eduide-deployment
+        run: |
+          set -euo pipefail
+          url=$(./scripts/env-url.sh "${{ inputs.environment }}")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "::notice::loading ${{ inputs.environment }} at $url with ${{ inputs.num_instances }} virtual users"
+
+      - name: Run
+        env:
+          LANDINGPAGE_URL: ${{ steps.target.outputs.url }}
+          NUM_INSTANCES: ${{ inputs.num_instances }}
+          KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
+          KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
+        run: npx artillery run tests/ide/scalable/artillery/Artillery.ts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: artillery-report-${{ inputs.environment }}
+          path: |
+            playwright-report/
+            test-data/
+          retention-days: 30
