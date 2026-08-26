@@ -16,13 +16,13 @@ on:
       environment:
         description: Which EduIDE environment to test
         type: choice
-        options: [test1, test2, test3, staging]
-        default: test2
+        options: [e2e-test, test1, test2, test3, staging]
+        default: e2e-test
   workflow_call:
     inputs:
       environment:
         type: string
-        default: staging
+        default: e2e-test
     secrets:
       KEYCLOAK_USER:
         required: true

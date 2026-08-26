@@ -33,10 +33,23 @@ Add `HEADED=true` to watch a run.
 
 | Workflow | Trigger |
 |---|---|
-| Functional tests | push, pull request, manual with an environment picker |
-| Artemis integration | push, pull request |
-| Artillery load test | **manual only** |
+| Functional tests | push, pull request, **and automatically after every deploy to `e2e-test`** |
+| Artemis integration | manual only |
+| Artillery load test | manual only |
 | Scalable tests | manual only |
+
+**Only the functional tests run in CI.** They are invoked by
+`deploy-e2e.yml` in EduIDE-deployment as soon as a deploy to `e2e-test`
+finishes, so a failure means the code is broken rather than that the deploy
+was half-finished — the deploy job uses `--wait --atomic`, so it only goes
+green on a healthy rollout.
+
+`e2e-test` exists so the suite has somewhere to run that nobody is using.
+Running against a shared test environment means a red build might only mean a
+colleague was mid-experiment, which is how a suite stops being trusted.
+
+The Artemis suite creates a course and an exercise on a live Artemis, submits
+code and waits for a result. Too slow and too stateful for every pull request.
 
 Artillery used to run on every push and pass in about two minutes having
 generated no load at all: the workflow never set `NUM_INSTANCES`, so it ran
