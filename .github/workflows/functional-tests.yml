@@ -58,6 +58,9 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
+      - name: Check the environment manifests are readable
+        run: ./scripts/test-env-url.sh
+
       - name: Resolve the target environment
         id: target
         env:

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Resolve an EduIDE environment name to its landing page URL.
 #
-#   ./scripts/env-url.sh test2          -> https://test2.theia-test.artemis.cit.tum.de
-#   ./scripts/env-url.sh test2 service  -> https://service.test2.theia-test.artemis.cit.tum.de
+#   ./scripts/env-url.sh test2          -> https://test2.eduide.student.k8s.aet.cit.tum.de
+#   ./scripts/env-url.sh test2 service  -> https://service.test2.eduide.student.k8s.aet.cit.tum.de
 #
 # The environments are described once, in EduIDE-deployment. Hardcoding a URL
 # here is how the suite ended up pointing only at production, with
@@ -23,7 +23,14 @@ if [[ -z "$DEPLOY" ]]; then
   done
 fi
 if [[ ! -d "${DEPLOY:-/nonexistent}/environments" ]]; then
-  echo "Cannot find EduIDE-deployment. Set EDUIDE_DEPLOYMENT to the checkout." >&2
+  if [[ -d "${DEPLOY:-/nonexistent}/deployments" ]]; then
+    # Found the repo, but it predates the environment manifests.
+    echo "This EduIDE-deployment checkout has no environments/ directory." >&2
+    echo "It still carries the pre-restructure deployments/ layout, so there is" >&2
+    echo "nothing to resolve. Merge EduIDE-deployment#113 first." >&2
+  else
+    echo "Cannot find EduIDE-deployment. Set EDUIDE_DEPLOYMENT to the checkout." >&2
+  fi
   exit 2
 fi
 
@@ -35,12 +42,28 @@ if [[ ! -f "$M" ]]; then
   exit 2
 fi
 
-base=$(yq -r '.spec.hosts.baseHost' "$M")
+# Hosts are in values.yaml, not env.yaml. The two files split by what reads
+# them: env.yaml configures the deploy, values.yaml configures the chart, and a
+# hostname is chart configuration. Reading them from env.yaml returns null and
+# builds "https://null.null".
+V="$DEPLOY/environments/$ENV_NAME/values.yaml"
+if [[ ! -f "$V" ]]; then
+  echo "No values.yaml for environment: $ENV_NAME" >&2
+  exit 2
+fi
+
+base=$(yq -r '.hosts.configuration.baseHost' "$V")
 case "$WHAT" in
-  landing)  host=$(yq -r '.spec.hosts.landing' "$M") ;;
-  service)  host=$(yq -r '.spec.hosts.service // ("service." + .spec.hosts.landing)' "$M") ;;
-  instance) host=$(yq -r '.spec.hosts.instance // ("instance." + .spec.hosts.landing)' "$M") ;;
+  landing)  host=$(yq -r '.hosts.configuration.landing' "$V") ;;
+  service)  host=$(yq -r '.hosts.configuration.service // ("service." + .hosts.configuration.landing)' "$V") ;;
+  instance) host=$(yq -r '.hosts.configuration.instance // ("instance." + .hosts.configuration.landing)' "$V") ;;
   *) echo "unknown component: $WHAT" >&2; exit 2 ;;
 esac
+
+if [[ -z "$base" || "$base" == "null" || -z "$host" || "$host" == "null" ]]; then
+  echo "Could not read hosts.configuration from $V" >&2
+  echo "Expected hosts.configuration.{baseHost,landing,service,instance}." >&2
+  exit 2
+fi
 
 echo "https://${host}.${base}"
