@@ -1,13 +1,25 @@
+# Manual only.
+#
+# This suite creates a course and an exercise on a live Artemis, submits code
+# and waits for a result, then deletes the course. It is too slow and too
+# stateful for every pull request, and CI here is deliberately functional tests
+# only — those are what run automatically after a deploy to e2e-test.
+
 name: Artemis Integration Tests
+
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Which EduIDE environment
+        type: choice
+        options: [e2e-test, test1, test2, test3, staging]
+        default: e2e-test
+
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: [self-hosted, e2e-test]
+    runs-on: ubuntu-latest
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
