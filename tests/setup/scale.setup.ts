@@ -7,6 +7,18 @@ import { debugLog } from "../../fixtures/utils/debug-logging";
 
 /*eslint no-empty-pattern: ["error", { "allowObjectPatternsAsParameters": true }]*/
 
+// Checked here rather than in global setup: global setup cannot tell which
+// project is actually running, so requiring this there failed the functional
+// suite, which has no use for it. Without it, Array.from({length: NaN}) yields
+// zero tests and the scale suite passes having tested nothing.
+const NUM_INSTANCES = Number.parseInt(process.env.NUM_INSTANCES ?? "", 10);
+if (!Number.isInteger(NUM_INSTANCES) || NUM_INSTANCES < 1) {
+  throw new Error(
+    `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}. ` +
+      "Without it the scale suite runs zero tests and reports success.",
+  );
+}
+
 /**
  * @remarks
  * This function is used to start the instance and get the IDE URL.

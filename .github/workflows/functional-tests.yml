@@ -67,7 +67,10 @@ jobs:
           EDUIDE_DEPLOYMENT: .eduide-deployment
         run: |
           set -euo pipefail
-          env_name="${{ inputs.environment || 'staging' }}"
+          # e2e-test, not staging: this suite gates deploys and e2e-test is the
+          # environment that follows main automatically. staging is the manual
+          # one and someone may be mid-experiment on it.
+          env_name="${{ inputs.environment || 'e2e-test' }}"
           url=$(./scripts/env-url.sh "$env_name")
           echo "environment=$env_name" >> "$GITHUB_OUTPUT"
           echo "url=$url" >> "$GITHUB_OUTPUT"

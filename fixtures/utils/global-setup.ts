@@ -57,13 +57,14 @@ async function globalSetup(config: { projects: { name: string }[] }) {
     }
   }
 
+  // config.projects is NOT filtered by --project here, so "scale" is present
+  // even for `--project=functional`. Requiring NUM_INSTANCES on that basis
+  // failed the functional suite in CI, which does not use it at all. The check
+  // belongs in scale.setup.ts, which only runs for the scale project.
   const isScale = config.projects.some((project) => project.name === "scale");
-  debugLog("global-setup", "detected scale project", { isScale });
+  debugLog("global-setup", "scale project present in config", { isScale });
 
   if (isScale) {
-    if (!process.env.NUM_INSTANCES) {
-      throw new Error("NUM_INSTANCES environment variable is not set");
-    }
     const testDataDir = path.join(process.cwd(), "test-data/scale");
     if (!fs.existsSync(testDataDir)) {
       fs.mkdirSync(testDataDir, { recursive: true });
