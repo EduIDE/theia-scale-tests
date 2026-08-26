@@ -1,0 +1,22 @@
+# AGENTS.md is the file every agent reads first, and every pre-existing one in
+# this org had rotted into fiction - naming CI jobs that were deleted, paths
+# that never existed, and rules contradicted by the tests. Nothing checked them.
+
+name: Docs check
+
+on:
+  pull_request:
+    paths: ["AGENTS.md", "scripts/check-agents-md.sh", ".github/workflows/docs-check.yml"]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  agents-md:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/check-agents-md.sh
