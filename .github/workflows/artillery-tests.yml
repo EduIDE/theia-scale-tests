@@ -19,8 +19,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Install dependencies
         run: npm ci
+      # --with-deps runs apt-get update, which fails the whole job when
+      # packages.microsoft.com returns 403 - it has nothing we need, and the
+      # hosted runner image already carries the Playwright system libraries.
+      - name: Drop unreachable apt sources
+        run: sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
       - name: Execute load tests
         uses: artilleryio/action-cli@v1
         with:
