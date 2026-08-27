@@ -26,7 +26,9 @@ jobs:
         run: sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
+      # artilleryio/action-cli@v1 runs a container whose entrypoint no longer
+      # resolves (`/home/node/artillery/bin/run: not found`), so the step fails
+      # regardless of the test. artillery is already a devDependency here, so
+      # run it straight from node_modules and drop the broken action.
       - name: Execute load tests
-        uses: artilleryio/action-cli@v1
-        with:
-          command: run tests/ide/scalable/artillery/Artillery.ts
+        run: npx artillery run tests/ide/scalable/artillery/Artillery.ts
