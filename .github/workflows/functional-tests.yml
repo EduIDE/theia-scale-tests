@@ -17,6 +17,15 @@ on:
           e2e.eduide.student.k8s.aet.cit.tum.de. In EduIDE-deployment the
           environment name and the landing page hostname are the same string,
           so the caller passes its environment name straight through.
+      artemis_url:
+        type: string
+        required: false
+        default: ''
+        description: >-
+          Artemis instance to integrate against, as a full URL, for example
+          https://artemis.tum.de. Environments front different Artemis
+          instances, so it belongs to the caller. Empty falls back to the
+          ARTEMIS_URL repository variable.
     secrets:
       KEYCLOAK_USER:
         required: true
@@ -32,14 +41,25 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: [self-hosted, e2e-test]
+    # Was `[self-hosted, e2e-test]`, which no registered runner answers to. The
+    # only self-hosted runners in this org are two ARC scale sets on the student
+    # cluster (`arc-buildkit-*-stud-amd64`), and an ARC scale-set runner is
+    # addressed by its scale set name, never by `self-hosted`. Every run since
+    # 2026-08-27 15:13 sat queued for that reason.
+    #
+    # The environments under test are reachable from the public internet - Let's
+    # Encrypt validates their certificates over HTTP-01 - so a hosted runner
+    # reaches them and needs no cluster access.
+    runs-on: ubuntu-latest
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
       # Called: test what the caller just deployed. Triggered directly: there is
       # no input, so keep using the repository variable as before.
       LANDINGPAGE_URL: ${{ inputs.environment && format('https://{0}', inputs.environment) || vars.LANDINGPAGE_URL }}
-      ARTEMIS_URL: ${{ vars.ARTEMIS_URL }}
+      # Configurable, so a caller can point the suite at its own Artemis.
+      # Falls back to the repository variable when triggered directly.
+      ARTEMIS_URL: ${{ inputs.artemis_url || vars.ARTEMIS_URL }}
       ARTEMIS_USER: ${{ secrets.ARTEMIS_USER }}
       ARTEMIS_PWD: ${{ secrets.ARTEMIS_PWD }}
       NUM_INSTANCES: 10
