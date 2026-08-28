@@ -4,6 +4,31 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # EduIDE-deployment calls this after it has deployed an environment, so the
+  # suite runs against the rollout that just went green rather than against
+  # whatever the repository variable happens to point at.
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+        description: >-
+          Landing page hostname to test, e.g.
+          e2e.eduide.student.k8s.aet.cit.tum.de. In EduIDE-deployment the
+          environment name and the landing page hostname are the same string,
+          so the caller passes its environment name straight through.
+    secrets:
+      KEYCLOAK_USER:
+        required: true
+      KEYCLOAK_PWD:
+        required: true
+      # A called workflow can only read secrets it declares. The functional
+      # project never touches Artemis, so these stay optional and simply stay
+      # empty for a caller that does not have them.
+      ARTEMIS_USER:
+        required: false
+      ARTEMIS_PWD:
+        required: false
 jobs:
   test:
     timeout-minutes: 60
@@ -11,14 +36,26 @@ jobs:
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
+      # Called: test what the caller just deployed. Triggered directly: there is
+      # no input, so keep using the repository variable as before.
+      LANDINGPAGE_URL: ${{ inputs.environment && format('https://{0}', inputs.environment) || vars.LANDINGPAGE_URL }}
       ARTEMIS_URL: ${{ vars.ARTEMIS_URL }}
       ARTEMIS_USER: ${{ secrets.ARTEMIS_USER }}
       ARTEMIS_PWD: ${{ secrets.ARTEMIS_PWD }}
       NUM_INSTANCES: 10
 
     steps:
+      # In a called workflow the github context belongs to the CALLER, so a bare
+      # checkout would clone the calling repository and leave no test suite to
+      # run. job.workflow_repository / job.workflow_sha point at the repo and
+      # commit this workflow file itself came from, which is what we want there.
+      # inputs.environment is only set when we are called, so direct push and
+      # pull_request runs keep checking out github.repository at github.sha
+      # exactly as before.
       - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.environment && job.workflow_repository || github.repository }}
+          ref: ${{ inputs.environment && job.workflow_sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
