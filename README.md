@@ -140,6 +140,39 @@ This repository provides E2E integration tests for the [Theia Cloud IDE](https:/
 | artemis            | Runs the **integration** test with Artemis, either local or deployed depending on the URLs set in the env file.   | [![Playwright Tests](https://github.com/ls1intum/theia-scale-tests/actions/workflows/artemis-integration-tests.yml/badge.svg)](https://github.com/ls1intum/theia-scale-tests/actions/workflows/artemis-integration-tests.yml) |
 | \*-setup           | These are setup projects and not meant to be run on its own. Dependencies are already set.                        |
 
+### Running the functional suite from another repository
+
+`.github/workflows/functional-tests.yml` is also a reusable workflow, so a deployment pipeline can run the suite against the environment it has just rolled out. `EduIDE/EduIDE-deployment` uses it that way:
+
+```yaml
+e2e:
+  needs: deploy
+  uses: EduIDE/theia-scale-tests/.github/workflows/functional-tests.yml@main
+  with:
+    environment: e2e.eduide.student.k8s.aet.cit.tum.de
+    artemis_url: https://artemis.tum.de
+  secrets:
+    KEYCLOAK_USER: ${{ secrets.E2E_KEYCLOAK_USER }}
+    KEYCLOAK_PWD: ${{ secrets.E2E_KEYCLOAK_PWD }}
+```
+
+| Input | Required | |
+|---|---|---|
+| `environment` | yes | Landing page hostname. Becomes `LANDINGPAGE_URL` as `https://<environment>` |
+| `artemis_url` | no | Artemis instance to integrate against, as a full URL. Environments front different Artemis instances, so it belongs to the caller. Empty falls back to the `ARTEMIS_URL` repository variable |
+
+`KEYCLOAK_USER` and `KEYCLOAK_PWD` are required; `ARTEMIS_USER` and `ARTEMIS_PWD`
+are optional and only needed by suites that reach Artemis.
+
+The job runs on `ubuntu-latest`. It used to ask for `[self-hosted, e2e-test]`,
+which no registered runner answers to, so every run queued indefinitely. The
+environments under test are reachable from the public internet, so a hosted
+runner is enough.
+
+`environment` is the landing page hostname; the job turns it into `LANDINGPAGE_URL=https://<environment>`. In EduIDE-deployment the environment name under `environments/` and the landing page hostname are the same string, so the caller passes its environment name through unchanged. Pushes and pull requests on this repository send no input and keep reading `LANDINGPAGE_URL` from the repository variable.
+
+`ARTEMIS_USER` and `ARTEMIS_PWD` are declared as optional secrets. The `functional` project never touches Artemis, so a caller that does not have them can leave them out.
+
 ## Development
 
 - Single User Playwright Tests are run using a Test Account for Keycloak, to change the Test User, change the environment variables in GitHub Secrets \
