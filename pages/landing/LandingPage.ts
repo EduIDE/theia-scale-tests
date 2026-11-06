@@ -63,7 +63,7 @@ export class LandingPage {
   }
 
   async launchLanguage(language: string) {
-    const preferredTestIds = [`launch-app-${language}`, `launch-app-${language}-latest`];
+    const preferredTestIds = [`launch-app-${language}`];
     const launchButtons = this.page.locator('[data-testid^="launch-app-"]');
     await launchButtons.first().waitFor({ state: "visible" });
     const availableLaunchIds = await launchButtons.evaluateAll((nodes) =>

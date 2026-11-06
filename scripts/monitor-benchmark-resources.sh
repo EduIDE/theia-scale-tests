@@ -8,7 +8,7 @@ Usage: monitor-benchmark-resources.sh --namespace <ns> --target-app <app> [optio
 Options:
   --context <name>         kubectl context to use
   --namespace <name>       Kubernetes namespace to monitor
-  --target-app <name>      App definition name, for example java-17-latest
+  --target-app <name>      App definition name, for example java-17
   --architecture <name>    internal | external
   --mode <name>            cold | warm
   --scenario <name>        Benchmark scenario label
