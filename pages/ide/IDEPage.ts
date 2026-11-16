@@ -31,7 +31,25 @@ export class IDEPage {
   async waitForReady(): Promise<void> {
     // The Welcome page is not always open, so the shell is the signal.
     await this.theiaApp.waitForShellAndInitialized();
+    await this.dismissMakefileToolsPrompt();
     await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  /**
+   * With a Makefile in the workspace the Makefile Tools extension asks whether
+   * to configure the project, and the file creation that follows goes wrong
+   * while the question is open.
+   */
+  async dismissMakefileToolsPrompt(waitMs = 8000): Promise<void> {
+    const yes = this.page
+      .getByRole("button", { name: "Yes (don't show again)" })
+      .first();
+    try {
+      await yes.waitFor({ state: "visible", timeout: waitMs });
+      await yes.click();
+    } catch {
+      // No prompt, nothing to dismiss.
+    }
   }
 
   /**
@@ -39,6 +57,7 @@ export class IDEPage {
    * @param fileName Name of the file to create
    */
   async createNewFile(fileName: string = "Test-1"): Promise<void> {
+    await this.dismissMakefileToolsPrompt(500);
     await (
       await this.theiaApp.menuBar.openMenu("File")
     ).clickMenuItem("New File...");
@@ -125,8 +144,10 @@ export class IDEPage {
       try {
         await Promise.race([
           this.waitForReady(),
-          this.page.waitForTimeout(60_000).then(() => { throw new Error("timeout"); })
-        ]);        
+          this.page.waitForTimeout(60_000).then(() => {
+            throw new Error("timeout");
+          }),
+        ]);
         return;
       } catch (_) {}
     }

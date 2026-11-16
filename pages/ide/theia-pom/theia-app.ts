@@ -183,11 +183,17 @@ export class TheiaApp {
     }
 
     const newTabIds = await this.runAndWaitForNewTabs(() => menuItem.click());
-    if (newTabIds.length > 1) {
-      console.warn("More than one new tab detected after opening the terminal");
+    // Other views open tabs at the same time, for example the Gradle container.
+    const terminalTab = newTabIds.find((id) =>
+      /^shell-tab-terminal-\d+$/.test(id),
+    );
+    if (!terminalTab) {
+      throw Error(
+        `No terminal tab among the new tabs: ${newTabIds.join(", ")}`,
+      );
     }
 
-    return new terminalFactory(newTabIds[0], this);
+    return new terminalFactory(terminalTab, this);
   }
 
   protected async runAndWaitForNewTabs(

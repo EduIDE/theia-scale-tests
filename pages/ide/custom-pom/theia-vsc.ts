@@ -25,7 +25,7 @@ async commit(message: string): Promise<void> {
     .fill(message);
   const commitButton = this.page
     .locator(".theia-sidepanel-toolbar .codicon-check")
-    .or(this.page.getByRole("button", { name: /^Commit/ }))
+    .or(this.page.getByRole("button", { name: /Commit/ }))
     .first();
   await commitButton.click();
   try {

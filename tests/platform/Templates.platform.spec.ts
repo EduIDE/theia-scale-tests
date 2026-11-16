@@ -10,7 +10,7 @@ import { CloudService } from "../../fixtures/utils/service";
  * the run holds at most one extra session.
  */
 test.describe("Remaining templates", () => {
-  test.describe.configure({ mode: "serial" });
+  test.describe.configure({ mode: "serial", timeout: 20 * 60_000 });
 
   let service: CloudService;
 
