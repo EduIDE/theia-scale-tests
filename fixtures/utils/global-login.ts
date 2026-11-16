@@ -13,6 +13,26 @@ export const LOGOUT_SESSION_FILE = path.join(
   "keycloak_logout_user.json",
 );
 
+class LoginError extends Error {
+  constructor(
+    message: string,
+    /** A rejected credential, which a second attempt would only repeat. */
+    readonly rejected: boolean,
+  ) {
+    super(message);
+  }
+}
+
+/** One more attempt for slow infrastructure, none for a rejected credential. */
+async function loginWithRetry(...args: Parameters<typeof login>) {
+  try {
+    await login(...args);
+  } catch (e) {
+    if (e instanceof LoginError && e.rejected) throw e;
+    await login(...args);
+  }
+}
+
 function origin(page: Page) {
   const url = new URL(page.url());
   return url.origin + url.pathname;
@@ -49,7 +69,21 @@ async function login(
     }
     await context.storageState({ path: file });
   } catch {
-    throw new Error(`Login failed at step "${step}" on ${origin(page)}`);
+    // Only yes/no answers about fixed elements, never page content.
+    const seen = async (selector: string) =>
+      (await page
+        .locator(selector)
+        .count()
+        .catch(() => 0)) > 0;
+    const loginForm = await seen("#username");
+    const keycloakError = await seen(
+      "#input-error, .alert-error, .pf-m-danger, .kc-feedback-text",
+    );
+    throw new LoginError(
+      `Login failed at step "${step}" on ${origin(page)} ` +
+        `(login form shown: ${loginForm}, error element shown: ${keycloakError})`,
+      keycloakError,
+    );
   } finally {
     await browser.close();
   }
@@ -79,13 +113,13 @@ export default async function globalSetup() {
   // The Artemis suite alone has no use for the Keycloak test user.
   if (!only("artemis")) {
     needs(["KEYCLOAK_USER", "KEYCLOAK_PWD", "LANDINGPAGE_URL"]);
-    await login(
+    await loginWithRetry(
       SESSION_FILE,
       process.env.KEYCLOAK_USER!,
       process.env.KEYCLOAK_PWD!,
       "login",
     );
-    await login(
+    await loginWithRetry(
       LOGOUT_SESSION_FILE,
       process.env.KEYCLOAK_USER!,
       process.env.KEYCLOAK_PWD!,
