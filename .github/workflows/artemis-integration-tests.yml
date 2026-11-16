@@ -1,17 +1,21 @@
 name: Artemis Integration Tests
+# Manual only: it creates a course and an exercise on a live Artemis.
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Landing page hostname to test
+        type: string
+        required: true
+        default: e2e.eduide.student.k8s.aet.cit.tum.de
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: [self-hosted, e2e-test]
+    runs-on: ubuntu-latest
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
+      LANDINGPAGE_URL: https://${{ inputs.environment }}
       ARTEMIS_URL: ${{ vars.ARTEMIS_URL }}
       ARTEMIS_USER: ${{ secrets.ARTEMIS_USER }}
       ARTEMIS_PWD: ${{ secrets.ARTEMIS_PWD }}

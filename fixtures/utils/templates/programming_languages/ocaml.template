@@ -1,7 +1,0 @@
-let () =
-  print_endline "Language is working and loops are running!";
-
-  (* Print numbers 1 to 5 *)
-  for i = 1 to 5 do
-    Printf.printf "Iteration: %d\n" i
-  done

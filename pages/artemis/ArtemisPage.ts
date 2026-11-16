@@ -137,7 +137,7 @@ export class ArtemisPage {
       course: course,
       shortName: exerciseName,
       buildConfig: {
-        theiaImage: "java-17-latest",
+        theiaImage: "java-17",
       },
     };
     const response = await this.page.request.post(

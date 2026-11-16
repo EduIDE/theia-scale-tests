@@ -4,6 +4,16 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # Manual run against any environment: type its landing page hostname.
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: string
+        required: true
+        default: e2e.eduide.student.k8s.aet.cit.tum.de
+        description: >-
+          Landing page hostname to test, for example
+          e2e.eduide.student.k8s.aet.cit.tum.de.
   # EduIDE-deployment calls this after it has deployed an environment, so the
   # suite runs against the rollout that just went green rather than against
   # whatever the repository variable happens to point at.
@@ -41,6 +51,11 @@ on:
 jobs:
   test:
     timeout-minutes: 60
+    # The test user owns one workspace per app and a per-user session limit, so
+    # two runs against one environment would stop each other's sessions.
+    concurrency:
+      group: functional-${{ inputs.environment || vars.LANDINGPAGE_URL }}
+      cancel-in-progress: false
     # Was `[self-hosted, e2e-test]`, which no registered runner answers to. The
     # only self-hosted runners in this org are two ARC scale sets on the student
     # cluster (`arc-buildkit-*-stud-amd64`), and an ARC scale-set runner is
@@ -83,11 +98,22 @@ jobs:
         run: npm ci
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+      - name: Unit tests
+        run: npm run test:unit
       - name: Run Playwright tests
-        run: npx playwright test --project=functional --workers=10
+        run: npx playwright test --project=functional --project=platform --workers=10
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-data/metrics/
           retention-days: 30
+      # error-context.md, screenshots and traces of failed tests
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7

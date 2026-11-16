@@ -25,7 +25,7 @@ export default defineConfig({
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
-  retries: process.env.CI ? 2 : 1,
+  retries: process.env.CI ? 1 : 0,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI
     ? process.env.NUM_INSTANCES
@@ -37,14 +37,12 @@ export default defineConfig({
 
   timeout: 60 * 1000,
 
-  globalSetup: require.resolve("./fixtures/utils/global-setup.ts"),
-
   globalTeardown: require.resolve("./fixtures/utils/global-teardown.ts"),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://127.0.0.1:3000',
-    baseURL: process.env.LANDINGPAGE_URL || "https://theia.artemis.cit.tum.de",
+    baseURL: process.env.LANDINGPAGE_URL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "on-first-retry",
@@ -54,6 +52,11 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    // Pure helpers, no environment needed
+    {
+      name: "unit",
+      testMatch: /.*\.unit\.spec\.ts/,
+    },
     // Setup project for auth
     {
       name: "auth-keycloak-setup",
@@ -79,6 +82,13 @@ export default defineConfig({
         storageState: keycloakStorageState,
       },
       dependencies: ["auth-keycloak-setup"],
+      teardown: "functional-teardown",
+    },
+
+    // Stops the sessions functional-setup launched
+    {
+      name: "functional-teardown",
+      testMatch: "**/functional.teardown.ts",
     },
 
     // Setup project for Scale tests
@@ -105,6 +115,19 @@ export default defineConfig({
       dependencies: ["functional-setup"],
     },
 
+    // Landing page, login and the templates that functional-setup does not
+    // keep launched. Runs next to functional, needs only the stored login.
+    {
+      name: "platform",
+      testMatch: /.*\.platform\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: keycloakStorageState,
+        launchOptions: { slowMo: 500 },
+      },
+      dependencies: ["auth-keycloak-setup"],
+    },
+
     // Scale testing on deployed version
     {
       name: "scale",
@@ -128,7 +151,7 @@ export default defineConfig({
     // Deterministic benchmark testing on a deployed Theia instance
     {
       name: "benchmark",
-      testMatch: [/.*\.benchmark\.spec\.ts/, /.*\.unit\.spec\.ts/],
+      testMatch: /.*\.benchmark\.spec\.ts/,
       workers: 1,
       timeout: 480 * 1000,
       use: {

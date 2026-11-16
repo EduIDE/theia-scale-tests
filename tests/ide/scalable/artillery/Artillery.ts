@@ -10,7 +10,17 @@ dotenv.config({
   path: path.resolve(__dirname, "../../../../../playwright.env"),
 });
 
-const numUsers = parseInt(process.env.NUM_INSTANCES!, 10);
+// Unset NUM_INSTANCES used to give NaN and an arrival rate of NaN, so the run
+// passed without generating any load.
+const numUsers = Number.parseInt(process.env.NUM_INSTANCES ?? "", 10);
+if (!Number.isFinite(numUsers) || numUsers < 1) {
+  throw new Error(
+    `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}.`,
+  );
+}
+if (!process.env.LANDINGPAGE_URL) {
+  throw new Error("LANDINGPAGE_URL is not set, there is nothing to target.");
+}
 
 export const config = {
   target: process.env.LANDINGPAGE_URL!,
@@ -18,7 +28,8 @@ export const config = {
     playwright: {
       launchOptions: {
         slowMo: 500,
-        headless: false,
+        // CI runners have no display.
+        headless: process.env.HEADED !== "true",
       },
       contextOptions: {
         permissions: ["clipboard-write", "clipboard-read"],
@@ -52,7 +63,7 @@ async function runVirtualStudent(
       process.env.KEYCLOAK_USER!,
       process.env.KEYCLOAK_PWD!,
     );
-    await landingPage.launchLanguage("java-17");
+    await landingPage.launch("java-17-standalone", "maven");
     await page.waitForURL(/.*#\/home\/project/);
   });
 
