@@ -2,9 +2,11 @@ import { test, expect } from "../../fixtures/theia.fixture";
 import { TEMPLATES } from "../../fixtures/utils/catalog";
 import { recordMetric } from "../../fixtures/utils/metrics";
 
+// No trace: it records the typed credentials, and the artifacts are public.
+test.use({ trace: "off" });
+
 test.describe("Landing page (not logged in)", () => {
-  // No trace: it records the typed credentials, and the artifacts are public.
-  test.use({ storageState: { cookies: [], origins: [] }, trace: "off" });
+  test.use({ storageState: { cookies: [], origins: [] } });
 
   test("Login redirects to the configured Keycloak", async ({ landingPage }) => {
     const cfg = await landingPage.config();
