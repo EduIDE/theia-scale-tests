@@ -99,15 +99,39 @@ export async function expectTask(
   testInfo: TestInfo,
   spec: Pick<TemplateSpec, "app" | "template">,
 ) {
-  const start = Date.now();
-  const { output, exitCode } = await runInTerminal(terminal, task.command);
+  let start = Date.now();
+  let { output, exitCode } = await runInTerminal(terminal, task.command);
+  if (exitCode !== 0) {
+    // Build tools fetch from remote repositories, which fails now and then.
+    // The repeat is reported, not hidden: a student runs the same command.
+    testInfo.annotations.push({
+      type: "recovered",
+      description: `recovered: ${task.label} task failed on first attempt (${spec.app} / ${spec.template}, exit ${exitCode}): ${lastLines(output, 3)}`,
+    });
+    start = Date.now();
+    ({ output, exitCode } = await runInTerminal(terminal, task.command));
+  }
   recordMetric(testInfo, {
     name: `task-${task.label.toLowerCase()}`,
     ...spec,
     ms: Date.now() - start,
   });
-  expect(exitCode, `${task.command} exit code`).toBe(0);
+  expect(
+    exitCode,
+    `${task.command} exit code, output ends: ${lastLines(output, 8)}`,
+  ).toBe(0);
   if (task.output) expect(output).toContain(task.output);
+}
+
+/** The last non-empty lines of terminal output, on one line. */
+export function lastLines(output: string, n: number): string {
+  return output
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(-n)
+    .join(" / ")
+    .slice(0, 400);
 }
 
 /** Template files are present and every task the template defines works. */
