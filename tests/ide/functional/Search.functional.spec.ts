@@ -113,9 +113,11 @@ test.describe("IDE Search Tests", () => {
       .locator(search.viewSelector)
       .locator(".resultContainer")
       .getByText(randomWord!);
-    const occurences = await result.all();
-    // At least one hit per file: a random word can also be part of another word.
-    expect(occurences.length).toBeGreaterThanOrEqual(2);
+    // At least one hit per file: a random word can also be part of another
+    // word. The results fill in while the search runs, so this waits for them.
+    await expect
+      .poll(async () => (await result.all()).length, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(2);
   });
 
   test.afterAll(async ({ jsApp }) => {

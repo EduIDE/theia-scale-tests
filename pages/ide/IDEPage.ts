@@ -1,5 +1,6 @@
 import { Page, expect } from "@playwright/test";
 import { TheiaApp } from "./theia-pom/theia-app";
+import { TheiaExplorerView } from "./theia-pom/theia-explorer-view";
 import { TheiaTerminal } from "./theia-pom/theia-terminal";
 
 /**
@@ -66,6 +67,25 @@ export class IDEPage {
    */
   async createNewFile(fileName: string = "Test-1"): Promise<void> {
     await this.dismissMakefileToolsPrompt(500);
+    await this.createNewFileOnce(fileName);
+    // Right after a reload the first creation is sometimes lost without an
+    // error, so a file that does not show up in the explorer is created once more.
+    if (fileName.includes("/")) return;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await this.theiaApp.openView(TheiaExplorerView);
+      const shown = await this.page
+        .locator(".theia-TreeNodeSegmentGrow")
+        .getByText(fileName, { exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (shown) return;
+      await this.createNewFileOnce(fileName);
+    }
+  }
+
+  private async createNewFileOnce(fileName: string): Promise<void> {
     await (
       await this.theiaApp.menuBar.openMenu("File")
     ).clickMenuItem("New File...");
