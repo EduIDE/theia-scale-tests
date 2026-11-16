@@ -116,7 +116,9 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
-          npx playwright install --with-deps chromium
+          # The download sometimes stalls near its end, so give it three tries.
+          for i in 1 2 3; do timeout 180 npx playwright install --with-deps chromium && exit 0; done
+          exit 1
       - name: Unit tests
         run: npm run test:unit
       - name: Run Playwright tests
