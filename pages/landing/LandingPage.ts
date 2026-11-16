@@ -58,9 +58,14 @@ export class LandingPage {
     // redirect to the IdP.
     const authUrl = /\/protocol\/openid-connect\/auth/;
     await this.page.route(authUrl, (route) => {
+      // The rewritten URL matches again and must pass.
+      if (new URL(route.request().url()).searchParams.get("kc_idp_hint") === "") {
+        return route.continue();
+      }
       const url = new URL(route.request().url());
       url.searchParams.set("kc_idp_hint", "");
-      return route.continue({ url: url.toString() });
+      // A redirect, because the URL of a navigation request cannot be changed.
+      return route.fulfill({ status: 302, headers: { location: url.toString() } });
     });
     await this.loginButton.click();
     await this.page.locator("#username").fill(username);
