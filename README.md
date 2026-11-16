@@ -187,7 +187,7 @@ e2e:
 `KEYCLOAK_USER` and `KEYCLOAK_PWD` are required; `ARTEMIS_USER` and `ARTEMIS_PWD`
 are optional and only needed by suites that reach Artemis.
 
-The job runs on `ubuntu-latest`. It used to ask for `[self-hosted, e2e-test]`,
+The job runs on `ubuntu-24.04`. It used to ask for `[self-hosted, e2e-test]`,
 which no registered runner answers to, so every run queued indefinitely. The
 environments under test are reachable from the public internet, so a hosted
 runner is enough.

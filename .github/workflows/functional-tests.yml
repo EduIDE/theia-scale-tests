@@ -65,7 +65,8 @@ jobs:
     # The environments under test are reachable from the public internet - Let's
     # Encrypt validates their certificates over HTTP-01 - so a hosted runner
     # reaches them and needs no cluster access.
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which this Playwright cannot install a browser on.
+    runs-on: ubuntu-24.04
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
