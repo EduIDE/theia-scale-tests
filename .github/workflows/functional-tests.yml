@@ -100,6 +100,11 @@ jobs:
         with:
           node-version: lts/*
       - name: Install dependencies
+        timeout-minutes: 10
+        # artillery pulls in @playwright/browser-chromium, whose install hook
+        # downloads a browser and stalled; the step below installs it anyway.
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
