@@ -75,6 +75,11 @@ jobs:
     # reaches them and needs no cluster access.
     # Pinned: ubuntu-latest moved to 26.04, which this Playwright cannot install a browser on.
     runs-on: ubuntu-24.04
+    # Browsers come preinstalled, the download from the runner stalled. Keep the
+    # tag equal to @playwright/test in package-lock.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.54.2-noble
+      options: --ipc=host
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
@@ -106,19 +111,10 @@ jobs:
       - name: Install dependencies
         timeout-minutes: 10
         # artillery pulls in @playwright/browser-chromium, whose install hook
-        # downloads a browser and stalled; the step below installs it anyway.
+        # downloads a browser; the container image already has one.
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
-      # apt-get update inside --with-deps fails or stalls when
-      # packages.microsoft.com is unreachable. Nothing we need comes from there.
-      - name: Install Playwright Browsers
-        timeout-minutes: 10
-        run: |
-          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
-          # The download sometimes stalls near its end, so give it three tries.
-          for i in 1 2 3; do timeout 180 npx playwright install --with-deps chromium && exit 0; done
-          exit 1
       - name: Unit tests
         run: npm run test:unit
       - name: Run Playwright tests

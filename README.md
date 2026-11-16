@@ -25,7 +25,7 @@ This repository provides E2E integration tests for the [Theia Cloud IDE](https:/
 - Install dependencies and the Playwright browser
   ```bash
   npm ci
-  npx playwright install chromium
+  npx playwright install chromium (not needed in CI, the workflow runs in the Playwright container)
   ```
 
 ## Testing an environment
