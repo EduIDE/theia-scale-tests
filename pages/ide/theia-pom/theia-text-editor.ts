@@ -42,6 +42,27 @@ export class TheiaTextEditor extends TheiaEditor {
     );
   }
 
+  /** Names what is in the page when the editor does not show, so the report says why. */
+  override async waitForVisible(): Promise<void> {
+    try {
+      await super.waitForVisible();
+    } catch (e) {
+      const found = await this.page
+        .locator('[id*="code-editor-opener"]')
+        .evaluateAll((els) =>
+          els.slice(0, 4).map((el) => {
+            const r = el.getBoundingClientRect();
+            return `${el.id.split("/").slice(-1)[0]} class="${el.className.toString().slice(0, 60)}" ${r.width}x${r.height}`;
+          }),
+        )
+        .catch(() => []);
+      throw new Error(
+        `Editor ${this.viewSelector} not visible, page has: ${JSON.stringify(found)}`,
+        { cause: e },
+      );
+    }
+  }
+
   async numberOfLines(): Promise<number | undefined> {
     await this.activate();
     return this.monacoEditor.numberOfLines();
