@@ -57,8 +57,6 @@ export default defineConfig({
     // baseURL: 'http://127.0.0.1:3000',
     baseURL: process.env.LANDINGPAGE_URL,
 
-    // Traces of the IDE are large, so only failed tests keep one. A green run
-    // uploads a few megabytes instead of hundreds.
     trace: "retain-on-failure",
     video: "off",
     screenshot: "only-on-failure",
