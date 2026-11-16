@@ -149,6 +149,24 @@ export function renderMarkdown(s) {
     out.push("### Failed", "", ...testTable(s.failed, true), "");
   if (s.flaky.length)
     out.push("### Flaky", "", ...testTable(s.flaky, true), "");
+  if (s.recovered.length) {
+    out.push(
+      "### Recovered",
+      "",
+      "A step failed and was repeated. A student could hit this too.",
+      "",
+      "| Spec | Test | What happened |",
+      "|---|---|---|",
+    );
+    for (const t of s.recovered) {
+      for (const d of new Set(t.recovered)) {
+        out.push(
+          `| ${escapeCell(t.file)} | ${escapeCell(t.title)} | ${escapeCell(d)} |`,
+        );
+      }
+    }
+    out.push("");
+  }
   if (s.perSpec.length) {
     out.push(
       "<details><summary>Duration per spec</summary>",
