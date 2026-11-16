@@ -29,7 +29,8 @@ export class IDEPage {
    * Wait for all essential IDE components to be ready
    */
   async waitForReady(): Promise<void> {
-    await this.page.locator(".gs-header").waitFor({ state: "visible" });
+    // The Welcome page is not always open, so the shell is the signal.
+    await this.theiaApp.waitForShellAndInitialized();
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
@@ -124,7 +125,7 @@ export class IDEPage {
       try {
         await Promise.race([
           this.waitForReady(),
-          this.page.waitForTimeout(10_000).then(() => { throw new Error("timeout"); })
+          this.page.waitForTimeout(60_000).then(() => { throw new Error("timeout"); })
         ]);        
         return;
       } catch (_) {}

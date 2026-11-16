@@ -101,7 +101,7 @@ export const TEMPLATES: TemplateSpec[] = [
     app: "python-standalone",
     template: "python",
     files: ["pyproject.toml", "src", "tests"],
-    run: { label: "Run", command: "python -m example.main", output: hello },
+    run: { label: "Run", command: "PYTHONPATH=src python -m example.main", output: hello },
     test: { label: "Test", command: "pytest" },
   },
   {

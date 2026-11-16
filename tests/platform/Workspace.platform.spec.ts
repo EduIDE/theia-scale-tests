@@ -12,8 +12,10 @@ import { LandingPage } from "../../pages/landing/LandingPage";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWelcomeView } from "../../pages/ide/theia-pom/theia-welcome-view";
 
-const levelItem = "#theia-statusBar div.element#status-bar-eduide-experience-level";
-const modeItem = "#theia-statusBar div.element#status-bar-eduide-workspace-mode";
+const levelItem =
+  "#theia-statusBar div.element#status-bar-eduide-experience-level";
+const modeItem =
+  "#theia-statusBar div.element#status-bar-eduide-workspace-mode";
 
 /**
  * One persistent workspace, followed through experience levels, the workspace
@@ -33,14 +35,20 @@ test.describe("Saved workspace", () => {
     await page.goto("/");
     cfg = await new LandingPage(page).config();
     await page.close();
-    service = await CloudService.connect(browser, cfg, process.env.LANDINGPAGE_URL!);
+    service = await CloudService.connect(
+      browser,
+      cfg,
+      process.env.LANDINGPAGE_URL!,
+    );
     launched = await launchIde(browser, spec, testInfo);
   });
 
   test.afterAll(async () => {
-    await launched.page.context().close();
-    await service.stopTemplate(spec);
-    await service.dispose();
+    await launched?.page.context().close();
+    if (service) {
+      await service.stopTemplate(spec);
+      await service.dispose();
+    }
   });
 
   // eslint-disable-next-line no-empty-pattern
@@ -49,7 +57,9 @@ test.describe("Saved workspace", () => {
   });
 
   test("Status bar shows the workspace mode of the app", async () => {
-    const app = cfg.additionalApps.find((a) => a.serviceAuthToken === spec.app)!;
+    const app = cfg.additionalApps.find(
+      (a) => a.serviceAuthToken === spec.app,
+    )!;
     const ephemeral = app.ephemeral ?? cfg.useEphemeralStorage;
     await expect(launched.page.locator(modeItem)).toContainText(
       ephemeral ? "Temporary workspace" : "Saved workspace",
@@ -60,13 +70,17 @@ test.describe("Saved workspace", () => {
   test("Expert is the default level", async () => {
     await expect(launched.page.locator(levelItem)).toContainText("Expert");
     const menus = await launched.ide.theiaApp.menuBar.visibleMenuBarItems();
-    expect(menus).toEqual(expect.arrayContaining(["Run", "Terminal", "Experience Levels"]));
+    expect(menus).toEqual(
+      expect.arrayContaining(["Run", "Terminal", "Experience Levels"]),
+    );
   });
 
   test("Beginner hides menus, views and Welcome page links, Expert restores them", async () => {
     const { page, ide } = launched;
     const setLevel = async (level: string) => {
-      await (await ide.theiaApp.menuBar.openMenu("Experience Levels")).clickMenuItem(level);
+      await (
+        await ide.theiaApp.menuBar.openMenu("Experience Levels")
+      ).clickMenuItem(level);
     };
     const leftTabs = page.locator(".theia-app-left .lm-TabBar-tab");
 
@@ -77,8 +91,12 @@ test.describe("Saved workspace", () => {
         .poll(() => ide.theiaApp.menuBar.visibleMenuBarItems())
         .toEqual(["File", "Edit", "View", "Experience Levels", "Help"]);
       await expect(leftTabs).toHaveCount(2);
-      await expect(page.locator("#shell-tab-explorer-view-container")).toBeVisible();
-      await expect(page.locator("#shell-tab-search-view-container")).toBeVisible();
+      await expect(
+        page.locator("#shell-tab-explorer-view-container"),
+      ).toBeVisible();
+      await expect(
+        page.locator("#shell-tab-search-view-container"),
+      ).toBeVisible();
 
       await openWelcome(page, ide);
       const welcome = page.locator(welcomeSelector(ide));
@@ -93,9 +111,9 @@ test.describe("Saved workspace", () => {
       .poll(() => ide.theiaApp.menuBar.visibleMenuBarItems())
       .toEqual(expect.arrayContaining(["Run", "Terminal"]));
     await expect(leftTabs.nth(2)).toBeVisible();
-    await expect(
-      page.locator(welcomeSelector(ide)),
-    ).toContainText("Open new Terminal");
+    await expect(page.locator(welcomeSelector(ide))).toContainText(
+      "Open new Terminal",
+    );
   });
 
   test("Files survive a session restart", async ({ browser }, testInfo) => {
@@ -107,13 +125,23 @@ test.describe("Saved workspace", () => {
     await service.stopTemplate(spec);
     // Starting while the old session still counts as running is refused.
     await expect
-      .poll(async () => (await service.listSessions()).filter((s) => s.appDefinition === spec.app).length, {
-        timeout: 3 * 60_000,
-      })
+      .poll(
+        async () =>
+          (await service.listSessions()).filter(
+            (s) => s.appDefinition === spec.app,
+          ).length,
+        {
+          timeout: 3 * 60_000,
+        },
+      )
       .toBe(0);
 
     launched = await launchIde(browser, spec, testInfo, "restart");
-    recordMetric(testInfo, { name: "restart-total", ...spec, ms: launched.launchMs });
+    recordMetric(testInfo, {
+      name: "restart-total",
+      ...spec,
+      ms: launched.launchMs,
+    });
     const after = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     const { output } = await runInTerminal(after, "cat e2e-persist.txt");
     expect(output).toContain(marker);
@@ -125,7 +153,9 @@ async function openWelcome(page: Page, ide: LaunchedIde["ide"]) {
   if (await welcome.isTabVisible()) {
     await welcome.activate();
   } else {
-    await (await ide.theiaApp.menuBar.openMenu("Help")).clickMenuItem("Welcome");
+    await (
+      await ide.theiaApp.menuBar.openMenu("Help")
+    ).clickMenuItem("Welcome");
   }
   await page.locator(welcome.viewSelector).waitFor({ state: "visible" });
 }

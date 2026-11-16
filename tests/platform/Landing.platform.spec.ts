@@ -4,7 +4,9 @@ import { TEMPLATES } from "../../fixtures/utils/catalog";
 test.describe("Landing page (not logged in)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("Login redirects to the configured Keycloak", async ({ landingPage }) => {
+  test("Login redirects to the configured Keycloak", async ({
+    landingPage,
+  }) => {
     const cfg = await landingPage.config();
     await expect(landingPage.loginButton).toBeVisible();
     await landingPage.loginButton.click();

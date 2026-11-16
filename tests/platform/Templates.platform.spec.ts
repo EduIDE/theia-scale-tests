@@ -19,11 +19,15 @@ test.describe("Remaining templates", () => {
     await page.goto("/");
     const cfg = await new LandingPage(page).config();
     await page.close();
-    service = await CloudService.connect(browser, cfg, process.env.LANDINGPAGE_URL!);
+    service = await CloudService.connect(
+      browser,
+      cfg,
+      process.env.LANDINGPAGE_URL!,
+    );
   });
 
   test.afterAll(async () => {
-    await service.dispose();
+    await service?.dispose();
   });
 
   for (const spec of EXTRA_TEMPLATES) {

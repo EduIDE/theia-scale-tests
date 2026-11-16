@@ -1,6 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { debugLog } from "../../fixtures/utils/debug-logging";
-import type { CloudConfig } from "../../fixtures/utils/service";
+import { CloudConfig, parseConfigJs } from "../../fixtures/utils/service";
 
 /**
  * The EduIDE landing page: login, one tile per offered app and, for apps with
@@ -13,11 +13,15 @@ export class LandingPage {
     this.page = page;
   }
 
-  /** The config the page itself runs on, served as /config.js. */
+  /**
+   * The config the page runs on. Read from /config.js rather than from the
+   * page, which is still redirecting through Keycloak right after the load.
+   */
   async config(): Promise<CloudConfig> {
-    return this.page.evaluate(
-      () => (window as unknown as { theiaCloudConfig: CloudConfig }).theiaCloudConfig,
+    const res = await this.page.request.get(
+      new URL("/config.js", process.env.LANDINGPAGE_URL).toString(),
     );
+    return parseConfigJs(await res.text());
   }
 
   get loginButton(): Locator {
@@ -59,19 +63,26 @@ export class LandingPage {
     const authUrl = /\/protocol\/openid-connect\/auth/;
     await this.page.route(authUrl, (route) => {
       // The rewritten URL matches again and must pass.
-      if (new URL(route.request().url()).searchParams.get("kc_idp_hint") === "") {
+      if (
+        new URL(route.request().url()).searchParams.get("kc_idp_hint") === ""
+      ) {
         return route.continue();
       }
       const url = new URL(route.request().url());
       url.searchParams.set("kc_idp_hint", "");
       // A redirect, because the URL of a navigation request cannot be changed.
-      return route.fulfill({ status: 302, headers: { location: url.toString() } });
+      return route.fulfill({
+        status: 302,
+        headers: { location: url.toString() },
+      });
     });
     const t = { timeout: 20_000 };
     await this.loginButton.click(t);
     await this.page.locator("#username").fill(username, t);
     await this.page.locator("#password").fill(password, t);
-    await this.page.getByRole("button", { name: "Sign in", exact: true }).click(t);
+    await this.page
+      .getByRole("button", { name: "Sign in", exact: true })
+      .click(t);
     await this.page.unroute(authUrl);
   }
 
@@ -90,8 +101,8 @@ export class LandingPage {
   async launch(app: string, template?: string) {
     const cfg = await this.config();
     const systems =
-      cfg.additionalApps.find((a) => a.serviceAuthToken === app)?.buildSystems ??
-      [];
+      cfg.additionalApps.find((a) => a.serviceAuthToken === app)
+        ?.buildSystems ?? [];
     await this.tile(app).waitFor({ state: "visible" });
     await this.tile(app).click();
     if (systems.length > 1) {

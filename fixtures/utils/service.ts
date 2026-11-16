@@ -26,6 +26,15 @@ export interface SessionSpec {
   envVars?: Record<string, string>;
 }
 
+/** /config.js assigns window.theiaCloudConfig, so it runs against a stand-in window. */
+export function parseConfigJs(source: string): CloudConfig {
+  const win: { theiaCloudConfig?: CloudConfig } = {};
+  new Function("window", source)(win);
+  if (!win.theiaCloudConfig)
+    throw new Error("config.js has no theiaCloudConfig");
+  return win.theiaCloudConfig;
+}
+
 export function decodeJwt(jwt: string): Record<string, string> {
   return JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString());
 }
