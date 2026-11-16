@@ -1,4 +1,5 @@
 import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-view";
@@ -89,5 +90,6 @@ test.describe("Theia IDE Terminal Tests", () => {
     await rustApp.openWorkspace("");
     const terminal = await rustApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
+    await terminal.submit(TEST_FILE_CLEANUP);
   });
 });

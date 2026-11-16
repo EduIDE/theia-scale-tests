@@ -3,6 +3,14 @@ import { TheiaApp } from "./theia-pom/theia-app";
 import { TheiaTerminal } from "./theia-pom/theia-terminal";
 
 /**
+ * What the specs leave behind in the workspace. The IDE does not always open
+ * the folder a spec asked for, so files can land in the project root of a Saved
+ * workspace, where the next run would find them.
+ */
+export const TEST_FILE_CLEANUP =
+  "rm -rf Editor-* Search-* Terminal-* VSC-* LoopExample* C-Test* __pycache__ *-test";
+
+/**
  * Main IDE page class that composes all IDE components
  * Provides high-level operations that may involve multiple components
  */
@@ -100,6 +108,7 @@ export class IDEPage {
     await this.waitForReady();
 
     const terminal = await this.theiaApp.openTerminal(TheiaTerminal);
+    await terminal.submit(TEST_FILE_CLEANUP);
     await terminal.submit(`mkdir ${workspacePath}`);
     await this.page.goto(this.getWorkspaceURL(workspacePath));
     await this.reloadUntilReady();

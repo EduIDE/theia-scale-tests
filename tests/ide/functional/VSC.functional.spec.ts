@@ -1,4 +1,5 @@
 import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaVSCView } from "../../../pages/ide/custom-pom/theia-vsc";
@@ -51,6 +52,7 @@ test.describe("Theia IDE VSC Tests", () => {
     await pythonApp.openWorkspace("");
     const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
+    await terminal.submit(TEST_FILE_CLEANUP);
     await terminal.submit("rm -rf .git");
   });
 });

@@ -1,4 +1,5 @@
 import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { pasteFromString } from "../../../fixtures/utils/commands";
 import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-view";
@@ -104,5 +105,6 @@ test.describe("Theia IDE Editor Tests", () => {
     await cApp.openWorkspace("");
     const terminal = await cApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
+    await terminal.submit(TEST_FILE_CLEANUP);
   });
 });

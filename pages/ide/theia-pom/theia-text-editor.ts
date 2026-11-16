@@ -15,24 +15,22 @@
 // *****************************************************************************
 
 import { ElementHandle, Locator } from "@playwright/test";
-import { join } from "path";
 
 import { TheiaApp } from "./theia-app";
 import { TheiaEditor } from "./theia-editor";
-import { OSUtil, urlEncodePath } from "./util";
 import { TheiaMonacoEditor } from "./theia-monaco-editor";
 
 export class TheiaTextEditor extends TheiaEditor {
   protected monacoEditor: TheiaMonacoEditor;
 
   constructor(filePath: string, app: TheiaApp) {
-    // shell-tab-code-editor-opener:file:///c%3A/Users/user/AppData/Local/Temp/cloud-ws-JBUhb6/sample.txt:1
-    // code-editor-opener:file:///c%3A/Users/user/AppData/Local/Temp/cloud-ws-JBUhb6/sample.txt:1
+    // Matched by file name, not by path: which folder the IDE opened as its
+    // workspace varies, and the counter at the end of the id is not always :1.
+    const name = filePath.split("/").pop()!;
     super(
       {
-        // Prefix match: the counter at the end of the id is not always :1.
-        tabSelector: `[id^="shell-tab-code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:"]`,
-        viewSelector: `[id^="code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:"].theia-editor`,
+        tabSelector: `[id^="shell-tab-code-editor-opener:file://"][id*="/${name}:"]`,
+        viewSelector: `[id^="code-editor-opener:file://"][id*="/${name}:"].theia-editor`,
       },
       app,
     );

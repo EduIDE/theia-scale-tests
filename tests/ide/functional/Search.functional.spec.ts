@@ -1,4 +1,5 @@
 import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
 import {
@@ -120,5 +121,6 @@ test.describe("IDE Search Tests", () => {
     await jsApp.openWorkspace("");
     const terminal = await jsApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
+    await terminal.submit(TEST_FILE_CLEANUP);
   });
 });

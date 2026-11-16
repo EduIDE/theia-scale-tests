@@ -22,7 +22,7 @@ export class TheiaVSCView extends TheiaView {
 async commit(message: string): Promise<void> {
   await this.page
     .locator(".theia-scm-main-container .theia-scm-input-message")
-    .fill(message);
+    .fill(message, { timeout: 120_000 });
   const commitButton = this.page
     .locator(".theia-sidepanel-toolbar .codicon-check")
     .or(this.page.getByRole("button", { name: /Commit/ }))
