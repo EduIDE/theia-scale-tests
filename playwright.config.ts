@@ -57,7 +57,14 @@ export default defineConfig({
     // baseURL: 'http://127.0.0.1:3000',
     baseURL: process.env.LANDINGPAGE_URL,
 
-    trace: "retain-on-failure",
+    // Snapshots and screenshots make up almost all of a trace of the IDE
+    // (hundreds of MB per run), so a trace keeps actions, network and console.
+    trace: {
+      mode: "retain-on-failure",
+      snapshots: false,
+      screenshots: false,
+      sources: false,
+    },
     video: "off",
     screenshot: "only-on-failure",
 
