@@ -31,6 +31,8 @@ export async function launchIde(
     storageState: AUTH_FILE,
     permissions: ["clipboard-read", "clipboard-write"],
   });
+  // Cold image pulls make the IDE load slower than a normal action.
+  context.setDefaultTimeout(3 * 60_000);
   const page = await context.newPage();
   await page.goto("/");
   const landing = new LandingPage(page);

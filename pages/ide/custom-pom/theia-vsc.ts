@@ -24,7 +24,9 @@ async commit(message: string): Promise<void> {
     .locator(".theia-scm-main-container .theia-scm-input-message")
     .fill(message);
   const commitButton = this.page
-    .locator(".theia-sidepanel-toolbar .codicon-check");
+    .locator(".theia-sidepanel-toolbar .codicon-check")
+    .or(this.page.getByRole("button", { name: /^Commit/ }))
+    .first();
   await commitButton.click();
   try {
     const commitDialog = await this.page.waitForSelector(

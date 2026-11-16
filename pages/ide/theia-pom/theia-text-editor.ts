@@ -19,7 +19,7 @@ import { join } from "path";
 
 import { TheiaApp } from "./theia-app";
 import { TheiaEditor } from "./theia-editor";
-import { normalizeId, OSUtil, urlEncodePath } from "./util";
+import { OSUtil, urlEncodePath } from "./util";
 import { TheiaMonacoEditor } from "./theia-monaco-editor";
 
 export class TheiaTextEditor extends TheiaEditor {
@@ -30,13 +30,9 @@ export class TheiaTextEditor extends TheiaEditor {
     // code-editor-opener:file:///c%3A/Users/user/AppData/Local/Temp/cloud-ws-JBUhb6/sample.txt:1
     super(
       {
-        tabSelector: normalizeId(
-          `#shell-tab-code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:1`,
-        ),
-        viewSelector:
-          normalizeId(
-            `#code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:1`,
-          ) + ".theia-editor",
+        // Prefix match: the counter at the end of the id is not always :1.
+        tabSelector: `[id^="shell-tab-code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:"]`,
+        viewSelector: `[id^="code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:"].theia-editor`,
       },
       app,
     );

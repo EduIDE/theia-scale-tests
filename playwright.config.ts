@@ -37,6 +37,11 @@ export default defineConfig({
 
   timeout: 60 * 1000,
 
+  // Without these a missing element waits for the whole test timeout, which is
+  // what made failing specs cost six minutes each. Slow steps (session launch,
+  // tasks) pass their own timeouts.
+  expect: { timeout: 15 * 1000 },
+
   // Logs in once, see the file for why this is not a test project.
   globalSetup: require.resolve("./fixtures/utils/global-login.ts"),
 
@@ -51,6 +56,8 @@ export default defineConfig({
     trace: "on-first-retry",
 
     ignoreHTTPSErrors: true,
+
+    actionTimeout: 30 * 1000,
   },
 
   /* Configure projects for major browsers */
