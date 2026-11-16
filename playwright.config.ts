@@ -33,7 +33,12 @@ export default defineConfig({
       : 1
     : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: "html",
+  // The JSON file feeds scripts/ci-summary.mjs.
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+    ["json", { outputFile: "test-results/results.json" }],
+  ],
 
   timeout: 60 * 1000,
 

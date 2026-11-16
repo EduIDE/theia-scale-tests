@@ -159,6 +159,14 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 
 `functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). The setup keeps five sessions (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) and the platform specs use at most two more at a time. Sessions are stopped through the Theia Cloud service REST API when they are no longer needed (logging out of the landing page does not stop them). Only one run per environment at a time: the workflow queues runs per environment.
 
+### When CI fails
+
+1. The run page: the job summary lists the verdict, counts, a table of failed and flaky tests with the first line of each error, durations per spec and the metrics. For a run called from EduIDE-deployment it appears on the caller's run page.
+2. The `ci-summary` artifact: one `index.html` with the same content and the screenshots of failed tests inline. Download, unzip, open.
+3. The `playwright-report` artifact (HTML report with traces) and, on failure, `test-results` (error context and traces per test).
+
+`scripts/ci-summary.mjs` builds the first two from `test-results/results.json` and `test-data/metrics/`.
+
 ### Login
 
 The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots and traces to the report, and the report is public, so nothing that types credentials is a test. A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.

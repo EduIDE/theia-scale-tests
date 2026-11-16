@@ -17,4 +17,4 @@ playwright.env
 /test-data/
 /user-data/
 
-*.DS_Store
+*.DS_Store/ci-summary/

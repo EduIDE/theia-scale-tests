@@ -119,6 +119,17 @@ jobs:
         run: npm run test:unit
       - name: Run Playwright tests
         run: npx playwright test --project=functional --project=platform --workers=6
+      # Rendered on the run page, and for a call from another repository on
+      # the caller's run page. Also runs when the tests failed.
+      - name: Summary
+        if: always()
+        run: node scripts/ci-summary.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ci-summary
+          path: ci-summary/
+          retention-days: 30
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
