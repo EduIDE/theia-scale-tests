@@ -3,7 +3,8 @@ import { TEMPLATES } from "../../fixtures/utils/catalog";
 import { recordMetric } from "../../fixtures/utils/metrics";
 
 test.describe("Landing page (not logged in)", () => {
-  test.use({ storageState: { cookies: [], origins: [] } });
+  // No trace: it records the typed credentials, and the artifacts are public.
+  test.use({ storageState: { cookies: [], origins: [] }, trace: "off" });
 
   test("Login redirects to the configured Keycloak", async ({ landingPage }) => {
     const cfg = await landingPage.config();
@@ -16,11 +17,10 @@ test.describe("Landing page (not logged in)", () => {
 
   test("Login and logout", async ({ landingPage }, testInfo) => {
     const start = Date.now();
-    await landingPage.login(
+    await landingPage.loginAndWait(
       process.env.KEYCLOAK_USER || "",
       process.env.KEYCLOAK_PWD || "",
     );
-    await landingPage.waitForLoggedIn();
     recordMetric(testInfo, { name: "login", ms: Date.now() - start });
 
     // This is a separate Keycloak session, so the stored login of the other

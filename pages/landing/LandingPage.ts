@@ -47,12 +47,33 @@ export class LandingPage {
     return ids.map((id) => id.replace("launch-app-", ""));
   }
 
+  /** The TUM login form behind Keycloak, filled and submitted. */
   async login(username: string, password: string) {
     debugLog("landing", "start login", { hasUsername: Boolean(username) });
     await this.loginButton.click();
-    await this.page.getByRole("textbox", { name: "Username" }).fill(username);
+    await this.page.getByRole("textbox", { name: "TUM Username" }).fill(username);
     await this.page.locator('input[type="password"]').fill(password);
-    await this.page.getByRole("button", { name: "Sign in" }).click();
+    await this.page.getByRole("button", { name: "Login", exact: true }).click();
+  }
+
+  /**
+   * Logs in and waits for the landing page. Failure artifacts (error-context,
+   * report) snapshot the page, and the repository is public, so the form is
+   * emptied before the error leaves this method.
+   */
+  async loginAndWait(username: string, password: string) {
+    try {
+      await this.login(username, password);
+      await this.waitForLoggedIn();
+    } catch (e) {
+      await this.page
+        .locator('input[type="text"], input[type="password"]')
+        .evaluateAll((inputs) =>
+          inputs.forEach((i) => ((i as HTMLInputElement).value = "")),
+        )
+        .catch(() => undefined);
+      throw e;
+    }
   }
 
   async logout() {
