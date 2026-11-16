@@ -14,6 +14,15 @@ on:
         type: string
         default: "5"
 
+permissions:
+  contents: read
+
+# One run per environment at a time: all runs share the test user and its
+# per-user session limit.
+concurrency:
+  group: eduide-${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   artillery:
     runs-on: ubuntu-24.04

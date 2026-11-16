@@ -48,14 +48,18 @@ on:
         required: false
       ARTEMIS_PWD:
         required: false
+permissions:
+  contents: read
+
+# One run per environment at a time: all runs share the test user and its
+# per-user session limit.
+concurrency:
+  group: eduide-${{ inputs.environment || replace(vars.LANDINGPAGE_URL, 'https://', '') }}
+  cancel-in-progress: false
+
 jobs:
   test:
     timeout-minutes: 60
-    # The test user owns one workspace per app and a per-user session limit, so
-    # two runs against one environment would stop each other's sessions.
-    concurrency:
-      group: functional-${{ inputs.environment || vars.LANDINGPAGE_URL }}
-      cancel-in-progress: false
     # Was `[self-hosted, e2e-test]`, which no registered runner answers to. The
     # only self-hosted runners in this org are two ARC scale sets on the student
     # cluster (`arc-buildkit-*-stud-amd64`), and an ARC scale-set runner is

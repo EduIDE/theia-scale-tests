@@ -10,7 +10,7 @@ test.describe("Landing page (not logged in)", () => {
     await expect(landingPage.loginButton).toBeVisible();
     await landingPage.loginButton.click();
     await expect(landingPage.page).toHaveURL(
-      new RegExp(new URL(cfg.keycloakAuthUrl).hostname.replace(/\./g, "\\.")),
+      (url) => url.hostname === new URL(cfg.keycloakAuthUrl).hostname,
     );
   });
 
