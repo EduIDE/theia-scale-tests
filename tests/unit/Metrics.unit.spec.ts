@@ -11,6 +11,7 @@ import {
   parseConfigJs,
   matchSessions,
   pkcePair,
+  tokenExpiresSoon,
 } from "../../fixtures/utils/service";
 import { createHash } from "crypto";
 
@@ -86,4 +87,12 @@ test("parseConfigJs returns the assigned config", () => {
   );
   expect(cfg.serviceUrl).toBe("https://s");
   expect(() => parseConfigJs("var x = 1;")).toThrow();
+});
+
+test("tokenExpiresSoon looks at the exp claim", () => {
+  const jwt = (exp: number) =>
+    `h.${Buffer.from(JSON.stringify({ exp })).toString("base64url")}.s`;
+  const now = 1_000_000_000_000;
+  expect(tokenExpiresSoon(jwt(now / 1000 + 30), 60, now)).toBe(true);
+  expect(tokenExpiresSoon(jwt(now / 1000 + 300), 60, now)).toBe(false);
 });

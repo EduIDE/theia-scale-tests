@@ -66,10 +66,63 @@ export function matchSessions(
  * out of the landing page leaves it running and counting against the per-user
  * session limit.
  */
+/** Gets an ID token with the SSO cookies of the stored login, see CloudService. */
+async function fetchIdToken(
+  context: BrowserContext,
+  cfg: CloudConfig,
+  landingUrl: string,
+): Promise<string> {
+  const { verifier, challenge } = pkcePair();
+  const redirectUri = new URL("/", landingUrl).toString();
+  const realm = `${cfg.keycloakAuthUrl.replace(/\/$/, "")}/realms/${cfg.keycloakRealm}/protocol/openid-connect`;
+  const page = await context.newPage();
+  let code: string | null;
+  try {
+    const callback = page.waitForRequest(
+      (r) => r.url().startsWith(redirectUri) && r.url().includes("code="),
+      { timeout: 30_000 },
+    );
+    await page.goto(
+      `${realm}/auth?` +
+        new URLSearchParams({
+          client_id: cfg.keycloakClientId,
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: "openid",
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        }),
+      { waitUntil: "commit" },
+    );
+    code = new URL((await callback).url()).searchParams.get("code");
+  } finally {
+    await page.close();
+  }
+  const res = await context.request.post(`${realm}/token`, {
+    form: {
+      grant_type: "authorization_code",
+      client_id: cfg.keycloakClientId,
+      code: code ?? "",
+      redirect_uri: redirectUri,
+      code_verifier: verifier,
+    },
+  });
+  if (!res.ok()) {
+    throw new Error(`Token request failed: ${res.status()}`);
+  }
+  return (await res.json()).id_token as string;
+}
+
+/** True when the token has less than `marginS` seconds left. */
+export function tokenExpiresSoon(jwt: string, marginS = 60, now = Date.now()) {
+  return Number(decodeJwt(jwt).exp) * 1000 - now < marginS * 1000;
+}
+
 export class CloudService {
   private constructor(
     private context: BrowserContext,
     private cfg: CloudConfig,
+    private landingUrl: string,
     private idToken: string,
     private user: string,
   ) {}
@@ -82,49 +135,12 @@ export class CloudService {
     const context = await browser.newContext({
       storageState: ".auth/keycloak_user.json",
     });
-    const { verifier, challenge } = pkcePair();
-    const redirectUri = new URL("/", landingUrl).toString();
-    const realm = `${cfg.keycloakAuthUrl.replace(/\/$/, "")}/realms/${cfg.keycloakRealm}/protocol/openid-connect`;
-    const page = await context.newPage();
-    let code: string | null;
-    try {
-      const callback = page.waitForRequest(
-        (r) => r.url().startsWith(redirectUri) && r.url().includes("code="),
-        { timeout: 30_000 },
-      );
-      await page.goto(
-        `${realm}/auth?` +
-          new URLSearchParams({
-            client_id: cfg.keycloakClientId,
-            redirect_uri: redirectUri,
-            response_type: "code",
-            scope: "openid",
-            code_challenge: challenge,
-            code_challenge_method: "S256",
-          }),
-        { waitUntil: "commit" },
-      );
-      code = new URL((await callback).url()).searchParams.get("code");
-    } finally {
-      await page.close();
-    }
-    const res = await context.request.post(`${realm}/token`, {
-      form: {
-        grant_type: "authorization_code",
-        client_id: cfg.keycloakClientId,
-        code: code ?? "",
-        redirect_uri: redirectUri,
-        code_verifier: verifier,
-      },
-    });
-    if (!res.ok()) {
-      throw new Error(`Token request failed: ${res.status()}`);
-    }
-    const idToken = (await res.json()).id_token as string;
+    const idToken = await fetchIdToken(context, cfg, landingUrl);
     const claims = decodeJwt(idToken);
     return new CloudService(
       context,
       cfg,
+      landingUrl,
       idToken,
       claims.email ?? claims.preferred_username,
     );
@@ -134,14 +150,22 @@ export class CloudService {
     await this.context.close();
   }
 
-  private headers() {
+  /** The token lives a few minutes, a serial spec outlasts it. */
+  private async headers() {
+    if (tokenExpiresSoon(this.idToken)) {
+      this.idToken = await fetchIdToken(
+        this.context,
+        this.cfg,
+        this.landingUrl,
+      );
+    }
     return { Authorization: `Bearer ${this.idToken}` };
   }
 
   async listSessions(): Promise<SessionSpec[]> {
     const res = await this.context.request.get(
       `${this.cfg.serviceUrl}/service/session/${this.cfg.serviceAuthToken}/${encodeURIComponent(this.user)}`,
-      { headers: this.headers() },
+      { headers: await this.headers() },
     );
     if (!res.ok()) throw new Error(`Listing sessions failed: ${res.status()}`);
     return res.json();
@@ -151,7 +175,7 @@ export class CloudService {
     const res = await this.context.request.delete(
       `${this.cfg.serviceUrl}/service/session`,
       {
-        headers: this.headers(),
+        headers: await this.headers(),
         data: {
           kind: "sessionStopRequest",
           appId: this.cfg.serviceAuthToken,

@@ -22,8 +22,7 @@ const modeItem =
  * mode in the status bar and a session restart.
  */
 test.describe("Saved workspace", () => {
-  test.describe.configure({ mode: "serial" });
-  test.setTimeout(20 * 60_000);
+  test.describe.configure({ mode: "serial", timeout: 20 * 60_000 });
   test.use({ permissions: ["clipboard-write", "clipboard-read"] });
 
   let launched: LaunchedIde;
