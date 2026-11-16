@@ -118,7 +118,7 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
       - name: Run Playwright tests
-        run: npx playwright test --project=functional --project=platform --workers=10
+        run: npx playwright test --project=functional --project=platform --workers=6
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

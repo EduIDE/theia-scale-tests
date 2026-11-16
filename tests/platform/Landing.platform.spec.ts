@@ -4,14 +4,19 @@ import { TEMPLATES } from "../../fixtures/utils/catalog";
 test.describe("Landing page (not logged in)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("Login redirects to the configured Keycloak", async ({
+  test("Login sends the browser to the configured Keycloak", async ({
     landingPage,
   }) => {
     const cfg = await landingPage.config();
     await expect(landingPage.loginButton).toBeVisible();
+    // Keycloak forwards to an identity provider at once, so the page does not
+    // rest on the Keycloak URL. The request shows where the login went.
+    const request = landingPage.page.waitForRequest((r) =>
+      r.url().startsWith(new URL(cfg.keycloakAuthUrl).origin),
+    );
     await landingPage.loginButton.click();
-    await expect(landingPage.page).toHaveURL(
-      (url) => url.hostname === new URL(cfg.keycloakAuthUrl).hostname,
+    expect((await request).url()).toContain(
+      `/realms/${cfg.keycloakRealm}/protocol/openid-connect/auth`,
     );
   });
 });

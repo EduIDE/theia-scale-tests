@@ -89,6 +89,8 @@ export default defineConfig({
     {
       name: "functional",
       testMatch: /.*\.(functional|ide)\.spec\.ts/,
+      // An IDE reload under ten parallel browsers takes well over a minute.
+      timeout: 3 * 60 * 1000,
       use: {
         ...devices["Desktop Chrome"],
         storageState: keycloakStorageState,

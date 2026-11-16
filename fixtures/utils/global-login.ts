@@ -104,7 +104,7 @@ export default async function globalSetup() {
   };
   if (projects.includes("--project=artemis")) {
     needs(["ARTEMIS_USER", "ARTEMIS_PWD", "LANDINGPAGE_URL"]);
-    await login(
+    await loginWithRetry(
       ARTEMIS_SESSION_FILE,
       process.env.ARTEMIS_USER!,
       process.env.ARTEMIS_PWD!,

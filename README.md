@@ -50,7 +50,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 
 - To run the functional suite on the deployed environment, run:
   ```bash
-  npx playwright test --project=functional --project=platform --workers=10
+  npx playwright test --project=functional --project=platform --workers=6
   ```
   This takes about 20 to 30 minutes. The first launch after a deploy can take minutes while images are pulled.
 - To run only the pure helper tests (no environment needed): `npm run test:unit`

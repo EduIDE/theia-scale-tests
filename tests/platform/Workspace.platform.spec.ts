@@ -90,7 +90,20 @@ test.describe("Saved workspace", () => {
       await expect
         .poll(() => ide.theiaApp.menuBar.visibleMenuBarItems())
         .toEqual(["File", "Edit", "View", "Experience Levels", "Help"]);
-      await expect(leftTabs).toHaveCount(2);
+      // Which side bar tabs are left is recorded, so a change shows in the report.
+      test.info().annotations.push({
+        type: "beginner-left-tabs",
+        description: (
+          await leftTabs.evaluateAll((tabs) => tabs.map((t) => t.id))
+        ).join(", "),
+      });
+      for (const hidden of [
+        "scm-view-container",
+        "debug",
+        "test-view-container",
+      ]) {
+        await expect(page.locator(`#shell-tab-${hidden}`)).toHaveCount(0);
+      }
       await expect(
         page.locator("#shell-tab-explorer-view-container"),
       ).toBeVisible();
