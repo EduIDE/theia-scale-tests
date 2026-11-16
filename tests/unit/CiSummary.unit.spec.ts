@@ -69,6 +69,24 @@ const report = {
               ],
             },
             {
+              title: "recovered one",
+              file: "ide/Editor.functional.spec.ts",
+              tests: [
+                {
+                  projectName: "functional",
+                  status: "expected",
+                  annotations: [
+                    {
+                      type: "recovered",
+                      description:
+                        "recovered: file creation lost on first attempt (c-standalone, <f>)",
+                    },
+                  ],
+                  results: [result("passed")],
+                },
+              ],
+            },
+            {
               title: "never started",
               file: "ide/Editor.functional.spec.ts",
               tests: [
@@ -88,6 +106,7 @@ test("collectTests tells failed, flaky, passed and did-not-run apart", () => {
     "expected",
     "unexpected",
     "flaky",
+    "expected",
     "notrun",
   ]);
   expect(tests[1].attempts).toBe(2);
@@ -96,7 +115,7 @@ test("collectTests tells failed, flaky, passed and did-not-run apart", () => {
 test("summary counts and verdict", () => {
   const s = summarize({ report, environment: "e2e.example" });
   expect(s.counts).toEqual({
-    passed: 1,
+    passed: 2,
     failed: 1,
     flaky: 1,
     skipped: 0,
@@ -128,4 +147,14 @@ test("html escapes test titles and error text", () => {
   expect(html).toContain("&lt;script&gt;");
   expect(html).toContain("fails &lt;b&gt;loud&lt;/b&gt;");
   expect(escapeHtml('"&<>')).toBe("&quot;&amp;&lt;&gt;");
+});
+
+test("recovered steps are listed and escaped", () => {
+  const s = summarize({ report });
+  expect(s.recovered).toHaveLength(1);
+  expect(renderMarkdown(s)).toContain("### Recovered");
+  const html = renderHtml(s, () => []);
+  expect(html).toContain("Recovered");
+  expect(html).not.toContain("<f>");
+  expect(html).toContain("&lt;f&gt;");
 });

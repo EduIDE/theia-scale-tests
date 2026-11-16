@@ -46,6 +46,7 @@ export async function openBaseIde(browser: Browser, key: string) {
   workspace.setPath("/home/project");
   const theiaApp = new TheiaApp(page, workspace, false);
   const idePage = new IDEPage(page, theiaApp, ideURL);
+  idePage.label = BASE_TEMPLATES[key].app;
   await page.goto(ideURL);
   await theiaApp.waitForShellAndInitialized();
   return idePage;

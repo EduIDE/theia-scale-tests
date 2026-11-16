@@ -55,6 +55,13 @@ export function collectTests(report) {
                 )
               : "",
           attachments: results.flatMap((r) => r.attachments ?? []),
+          // Annotations of the test, plus those a retry added.
+          recovered: [
+            ...(t.annotations ?? []),
+            ...results.flatMap((r) => r.annotations ?? []),
+          ]
+            .filter((a) => a.type === "recovered")
+            .map((a) => stripAnsi(a.description ?? "")),
         });
       }
     }
@@ -101,6 +108,7 @@ export function summarize({ report, metrics = [], environment = "" }) {
     durationMs: report?.stats?.duration ?? 0,
     failed: by("unexpected"),
     flaky: by("flaky"),
+    recovered: tests.filter((t) => t.recovered.length),
     perSpec: Object.entries(perSpec).sort((a, b) => b[1] - a[1]),
     metrics,
   };
@@ -220,6 +228,16 @@ img{max-width:100%;border:1px solid #8884;margin:4px 0}
 <p>${c.passed} passed, ${c.failed} failed, ${c.flaky} flaky, ${c.skipped} skipped, ${c.notRun} did not run. Total ${e(minutes(s.durationMs))}.</p>
 ${s.failed.length ? `<h2>Failed</h2>${table(testHead, testRows(s.failed))}` : ""}
 ${s.flaky.length ? `<h2>Flaky</h2>${table(testHead, testRows(s.flaky))}` : ""}
+${
+  s.recovered.length
+    ? `<h2>Recovered</h2><p>A step failed and was repeated. A student could hit this too.</p>${table(
+        ["Spec", "Test", "What happened"],
+        s.recovered.flatMap((t) =>
+          [...new Set(t.recovered)].map((d) => [t.file, t.title, d]),
+        ),
+      )}`
+    : ""
+}
 ${shots ? `<h2>Screenshots of failed tests</h2>${shots}` : ""}
 ${
   s.perSpec.length

@@ -1,4 +1,4 @@
-import { Page, expect } from "@playwright/test";
+import { Page, expect, test } from "@playwright/test";
 import { TheiaApp } from "./theia-pom/theia-app";
 import { TheiaExplorerView } from "./theia-pom/theia-explorer-view";
 import { TheiaTerminal } from "./theia-pom/theia-terminal";
@@ -19,6 +19,10 @@ export class IDEPage {
   page: Page;
   readonly theiaApp: TheiaApp;
   readonly baseURL: string;
+  /** App name for reports, set by the fixture that opened this IDE. */
+  label = "";
+  private readyAt = 0;
+  private makefilePromptSeen = false;
 
   constructor(page: Page, app: TheiaApp, baseURL: string) {
     this.page = page;
@@ -40,7 +44,8 @@ export class IDEPage {
   async waitForReady(): Promise<void> {
     // The Welcome page is not always open, so the shell is the signal.
     await this.theiaApp.waitForShellAndInitialized();
-    await this.dismissMakefileToolsPrompt();
+    this.makefilePromptSeen = await this.dismissMakefileToolsPrompt();
+    this.readyAt = Date.now();
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
 
@@ -49,15 +54,16 @@ export class IDEPage {
    * to configure the project, and the file creation that follows goes wrong
    * while the question is open.
    */
-  async dismissMakefileToolsPrompt(waitMs = 8000): Promise<void> {
+  async dismissMakefileToolsPrompt(waitMs = 8000): Promise<boolean> {
     const yes = this.page
       .getByRole("button", { name: "Yes (don't show again)" })
       .first();
     try {
       await yes.waitFor({ state: "visible", timeout: waitMs });
       await yes.click();
+      return true;
     } catch {
-      // No prompt, nothing to dismiss.
+      return false; // No prompt, nothing to dismiss.
     }
   }
 
@@ -66,7 +72,7 @@ export class IDEPage {
    * @param fileName Name of the file to create
    */
   async createNewFile(fileName: string = "Test-1"): Promise<void> {
-    await this.dismissMakefileToolsPrompt(500);
+    const promptJustSeen = await this.dismissMakefileToolsPrompt(500);
     await this.createNewFileOnce(fileName);
     // Right after a reload the first creation is sometimes lost without an
     // error, so a file that does not show up in the explorer is created once more.
@@ -81,6 +87,14 @@ export class IDEPage {
         .then(() => true)
         .catch(() => false);
       if (shown) return;
+      // Not hidden: a lost first "New File" is something a student would see.
+      test.info().annotations.push({
+        type: "recovered",
+        description:
+          `recovered: file creation lost on first attempt (${this.label || "unknown app"}, ${fileName}) ` +
+          `[makefile prompt seen at ready: ${this.makefilePromptSeen}, dismissed now: ${promptJustSeen}, ` +
+          `ms since IDE ready: ${this.readyAt ? Date.now() - this.readyAt : "n/a"}]`,
+      });
       await this.createNewFileOnce(fileName);
     }
   }
