@@ -159,6 +159,10 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 
 `functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). The setup keeps five sessions (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) and the platform specs use at most two more at a time. Sessions are stopped through the Theia Cloud service REST API when they are no longer needed (logging out of the landing page does not stop them). Only one run per environment at a time: the workflow queues runs per environment.
 
+### Login
+
+The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots and traces to the report, and the report is public, so nothing that types credentials is a test. A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. Global setup is skipped for `--project=unit` and `--project=local`.
+
 ### Metrics
 
 Specs record durations as Playwright annotations (HTML report) and as one JSON file each in `test-data/metrics/`, which the workflow uploads with the report:

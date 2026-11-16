@@ -1,9 +1,5 @@
 import { test, expect } from "../../fixtures/theia.fixture";
 import { TEMPLATES } from "../../fixtures/utils/catalog";
-import { recordMetric } from "../../fixtures/utils/metrics";
-
-// No trace: it records the typed credentials, and the artifacts are public.
-test.use({ trace: "off" });
 
 test.describe("Landing page (not logged in)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
@@ -16,17 +12,15 @@ test.describe("Landing page (not logged in)", () => {
       (url) => url.hostname === new URL(cfg.keycloakAuthUrl).hostname,
     );
   });
+});
 
-  test("Login and logout", async ({ landingPage }, testInfo) => {
-    const start = Date.now();
-    await landingPage.loginAndWait(
-      process.env.KEYCLOAK_USER || "",
-      process.env.KEYCLOAK_PWD || "",
-    );
-    recordMetric(testInfo, { name: "login", ms: Date.now() - start });
+// Its own login from global setup: logging out ends that Keycloak session, which
+// the other tests must not share.
+test.describe("Logout", () => {
+  test.use({ storageState: ".auth/keycloak_logout_user.json" });
 
-    // This is a separate Keycloak session, so the stored login of the other
-    // tests stays valid.
+  test("Logout returns to the login page", async ({ landingPage }) => {
+    await landingPage.waitForLoggedIn();
     await landingPage.logout();
     await expect(landingPage.loginButton).toBeVisible({ timeout: 30_000 });
   });

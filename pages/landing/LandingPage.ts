@@ -67,34 +67,12 @@ export class LandingPage {
       // A redirect, because the URL of a navigation request cannot be changed.
       return route.fulfill({ status: 302, headers: { location: url.toString() } });
     });
-    // Short timeouts on purpose: a step that fails must fail before the test
-    // timeout, so loginAndWait can still empty the form for the snapshot.
     const t = { timeout: 20_000 };
     await this.loginButton.click(t);
     await this.page.locator("#username").fill(username, t);
     await this.page.locator("#password").fill(password, t);
     await this.page.getByRole("button", { name: "Sign in", exact: true }).click(t);
     await this.page.unroute(authUrl);
-  }
-
-  /**
-   * Logs in and waits for the landing page. Failure artifacts (error-context,
-   * report) snapshot the page, and the repository is public, so the form is
-   * emptied before the error leaves this method.
-   */
-  async loginAndWait(username: string, password: string) {
-    try {
-      await this.login(username, password);
-      await this.waitForLoggedIn();
-    } catch (e) {
-      await this.page
-        .locator('input[type="text"], input[type="password"]')
-        .evaluateAll((inputs) =>
-          inputs.forEach((i) => ((i as HTMLInputElement).value = "")),
-        )
-        .catch(() => undefined);
-      throw e;
-    }
   }
 
   async logout() {

@@ -37,6 +37,9 @@ export default defineConfig({
 
   timeout: 60 * 1000,
 
+  // Logs in once, see the file for why this is not a test project.
+  globalSetup: require.resolve("./fixtures/utils/global-login.ts"),
+
   globalTeardown: require.resolve("./fixtures/utils/global-teardown.ts"),
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -57,16 +60,6 @@ export default defineConfig({
       name: "unit",
       testMatch: /.*\.unit\.spec\.ts/,
     },
-    // Setup project for auth
-    {
-      name: "auth-keycloak-setup",
-      testMatch: "**/auth_keycloak_user.setup.ts",
-      // A wrong credential should cost one login attempt, not two.
-      retries: 0,
-      use: {
-        storageState: undefined,
-      },
-    },
     // Setup project for auth with Artemis user
     {
       name: "auth-artemis-setup",
@@ -83,7 +76,6 @@ export default defineConfig({
       use: {
         storageState: keycloakStorageState,
       },
-      dependencies: ["auth-keycloak-setup"],
       teardown: "functional-teardown",
     },
 
@@ -100,7 +92,6 @@ export default defineConfig({
       use: {
         storageState: keycloakStorageState,
       },
-      dependencies: ["auth-keycloak-setup"],
     },
 
     // Main test projects
@@ -127,7 +118,6 @@ export default defineConfig({
         storageState: keycloakStorageState,
         launchOptions: { slowMo: 500 },
       },
-      dependencies: ["auth-keycloak-setup"],
     },
 
     // Scale testing on deployed version
@@ -163,7 +153,6 @@ export default defineConfig({
           slowMo: 0,
         },
       },
-      dependencies: authDisabled ? [] : ["auth-keycloak-setup"],
     },
 
     {
