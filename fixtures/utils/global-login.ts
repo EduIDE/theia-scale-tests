@@ -79,9 +79,14 @@ async function login(
     const keycloakError = await seen(
       "#input-error, .alert-error, .pf-m-danger, .kc-feedback-text",
     );
+    const loginButton = await seen('[data-testid="loginButton"]');
+    const logoutButton = await seen('[data-testid="logoutButton"]');
+    const authParamsLeft = /[?#&](code|state)=/.test(page.url());
     throw new LoginError(
       `Login failed at step "${step}" on ${origin(page)} ` +
-        `(login form shown: ${loginForm}, error element shown: ${keycloakError})`,
+        `(login form shown: ${loginForm}, error element shown: ${keycloakError}, ` +
+        `landing login button: ${loginButton}, landing logout button: ${logoutButton}, ` +
+        `auth params still in URL: ${authParamsLeft})`,
       keycloakError,
     );
   } finally {
