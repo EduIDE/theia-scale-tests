@@ -47,13 +47,23 @@ export class LandingPage {
     return ids.map((id) => id.replace("launch-app-", ""));
   }
 
-  /** The TUM login form behind Keycloak, filled and submitted. */
+  /**
+   * Keycloak's own login form. The landing page redirects with a kc_idp_hint
+   * that sends users to the TUM IdP, which does not know the test account, so
+   * the same auth URL is opened again without the hint.
+   */
   async login(username: string, password: string) {
     debugLog("landing", "start login", { hasUsername: Boolean(username) });
     await this.loginButton.click();
-    await this.page.getByRole("textbox", { name: "TUM Username" }).fill(username);
-    await this.page.locator('input[type="password"]').fill(password);
-    await this.page.getByRole("button", { name: "Login", exact: true }).click();
+    await this.page.waitForURL(/\/protocol\/openid-connect\/auth/);
+    const url = new URL(this.page.url());
+    if (url.searchParams.get("kc_idp_hint") !== "") {
+      url.searchParams.set("kc_idp_hint", "");
+      await this.page.goto(url.toString());
+    }
+    await this.page.locator("#username").fill(username);
+    await this.page.locator("#password").fill(password);
+    await this.page.locator("#kc-login").click();
   }
 
   /**

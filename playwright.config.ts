@@ -61,6 +61,8 @@ export default defineConfig({
     {
       name: "auth-keycloak-setup",
       testMatch: "**/auth_keycloak_user.setup.ts",
+      // A wrong credential should cost one login attempt, not two.
+      retries: 0,
       use: {
         storageState: undefined,
       },
