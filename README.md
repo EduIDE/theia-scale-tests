@@ -212,7 +212,6 @@ runner is enough.
   ```
 - Tests require to have a specific setup files run before them. These are normally already run by requirements of the **playwright.config.ts**
 - The tests safe the URL for each instance in a text file under **/test-data** for debugging and to access them in the tests
-  - As tests include testing of all available programming languages: local images for each language can be found here: https://github.com/orgs/ls1intum/packages?repo_name=artemis-theia-blueprints
 
 ## Info
 
