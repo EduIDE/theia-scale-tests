@@ -67,10 +67,13 @@ export class LandingPage {
       // A redirect, because the URL of a navigation request cannot be changed.
       return route.fulfill({ status: 302, headers: { location: url.toString() } });
     });
-    await this.loginButton.click();
-    await this.page.locator("#username").fill(username);
-    await this.page.locator("#password").fill(password);
-    await this.page.locator("#kc-login").click();
+    // Short timeouts on purpose: a step that fails must fail before the test
+    // timeout, so loginAndWait can still empty the form for the snapshot.
+    const t = { timeout: 20_000 };
+    await this.loginButton.click(t);
+    await this.page.locator("#username").fill(username, t);
+    await this.page.locator("#password").fill(password, t);
+    await this.page.getByRole("button", { name: "Sign in", exact: true }).click(t);
     await this.page.unroute(authUrl);
   }
 
