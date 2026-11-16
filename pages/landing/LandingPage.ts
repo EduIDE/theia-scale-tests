@@ -54,18 +54,19 @@ export class LandingPage {
    */
   async login(username: string, password: string) {
     debugLog("landing", "start login", { hasUsername: Boolean(username) });
-    // Keycloak answers the auth URL with a redirect to the IdP, so the page
-    // never rests there and the request is the place to read it from.
-    const authRequest = this.page.waitForRequest((r) =>
-      r.url().includes("/protocol/openid-connect/auth"),
-    );
+    // The hint is dropped on the way out, so no second navigation races the
+    // redirect to the IdP.
+    const authUrl = /\/protocol\/openid-connect\/auth/;
+    await this.page.route(authUrl, (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set("kc_idp_hint", "");
+      return route.continue({ url: url.toString() });
+    });
     await this.loginButton.click();
-    const url = new URL((await authRequest).url());
-    url.searchParams.set("kc_idp_hint", "");
-    await this.page.goto(url.toString());
     await this.page.locator("#username").fill(username);
     await this.page.locator("#password").fill(password);
     await this.page.locator("#kc-login").click();
+    await this.page.unroute(authUrl);
   }
 
   /**
