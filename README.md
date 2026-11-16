@@ -161,7 +161,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 
 ### Login
 
-The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots and traces to the report, and the report is public, so nothing that types credentials is a test. A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. Global setup is skipped for `--project=unit` and `--project=local`.
+The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots and traces to the report, and the report is public, so nothing that types credentials is a test. A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.
 
 ### Metrics
 

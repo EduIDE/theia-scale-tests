@@ -60,15 +60,6 @@ export default defineConfig({
       name: "unit",
       testMatch: /.*\.unit\.spec\.ts/,
     },
-    // Setup project for auth with Artemis user
-    {
-      name: "auth-artemis-setup",
-      testMatch: "**/auth_artemis_user.setup.ts",
-      use: {
-        storageState: undefined,
-      },
-    },
-
     // Setup project for IDE URL
     {
       name: "functional-setup",
@@ -175,7 +166,6 @@ export default defineConfig({
           ],
         },
       },
-      dependencies: ["auth-artemis-setup"],
     },
 
     // Local testing for functional tests

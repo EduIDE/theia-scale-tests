@@ -7,7 +7,11 @@ import { recordMetric } from "./metrics";
 export const AUTH_DIR = path.join(process.cwd(), ".auth");
 export const SESSION_FILE = path.join(AUTH_DIR, "keycloak_user.json");
 /** A second login, so the logout test ends a session nobody else uses. */
-export const LOGOUT_SESSION_FILE = path.join(AUTH_DIR, "keycloak_logout_user.json");
+export const ARTEMIS_SESSION_FILE = path.join(AUTH_DIR, "artemis_user.json");
+export const LOGOUT_SESSION_FILE = path.join(
+  AUTH_DIR,
+  "keycloak_logout_user.json",
+);
 
 function origin(page: Page) {
   const url = new URL(page.url());
@@ -22,7 +26,12 @@ function origin(page: Page) {
  * nothing that typed credentials may be a test. Errors here name the step and
  * the page without its query string, never a field value or page content.
  */
-async function login(file: string, metricName?: string) {
+async function login(
+  file: string,
+  user: string,
+  pwd: string,
+  metricName?: string,
+) {
   const browser = await chromium.launch();
   const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
@@ -32,7 +41,7 @@ async function login(file: string, metricName?: string) {
     await page.goto(process.env.LANDINGPAGE_URL!);
     const landing = new LandingPage(page);
     step = "log in on the Keycloak form";
-    await landing.login(process.env.KEYCLOAK_USER!, process.env.KEYCLOAK_PWD!);
+    await landing.login(user, pwd);
     step = "wait for the logged-in landing page";
     await landing.waitForLoggedIn();
     if (metricName) {
@@ -47,17 +56,39 @@ async function login(file: string, metricName?: string) {
 }
 
 export default async function globalSetup() {
-  // Pure helper specs need no environment.
-  if (
-    process.env.DISABLE_AUTH === "1" ||
-    process.argv.some((a) => a === "--project=unit" || a === "--project=local")
-  ) {
-    return;
-  }
-  for (const v of ["KEYCLOAK_USER", "KEYCLOAK_PWD", "LANDINGPAGE_URL"]) {
-    if (!process.env[v]) throw new Error(`${v} must be set, see README`);
-  }
+  if (process.env.DISABLE_AUTH === "1") return;
+  const projects = process.argv.filter((a) => a.startsWith("--project="));
+  const only = (name: string) =>
+    projects.length > 0 && projects.every((p) => p === `--project=${name}`);
+  // Pure helper specs and local containers need no environment.
+  if (only("unit") || only("local")) return;
+
   fs.mkdirSync(AUTH_DIR, { recursive: true });
-  await login(SESSION_FILE, "login");
-  await login(LOGOUT_SESSION_FILE);
+  const needs = (vars: string[]) => {
+    for (const v of vars)
+      if (!process.env[v]) throw new Error(`${v} must be set, see README`);
+  };
+  if (projects.includes("--project=artemis")) {
+    needs(["ARTEMIS_USER", "ARTEMIS_PWD", "LANDINGPAGE_URL"]);
+    await login(
+      ARTEMIS_SESSION_FILE,
+      process.env.ARTEMIS_USER!,
+      process.env.ARTEMIS_PWD!,
+    );
+  }
+  // The Artemis suite alone has no use for the Keycloak test user.
+  if (!only("artemis")) {
+    needs(["KEYCLOAK_USER", "KEYCLOAK_PWD", "LANDINGPAGE_URL"]);
+    await login(
+      SESSION_FILE,
+      process.env.KEYCLOAK_USER!,
+      process.env.KEYCLOAK_PWD!,
+      "login",
+    );
+    await login(
+      LOGOUT_SESSION_FILE,
+      process.env.KEYCLOAK_USER!,
+      process.env.KEYCLOAK_PWD!,
+    );
+  }
 }
