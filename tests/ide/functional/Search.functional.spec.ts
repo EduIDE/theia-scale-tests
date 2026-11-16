@@ -1,3 +1,4 @@
+import { serializeOnSession } from "../../../fixtures/utils/session-lock";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
 import {
@@ -15,6 +16,7 @@ import { getRandomWord } from "../../../fixtures/utils/commands";
 const testPrefix = "Search-";
 
 test.describe("IDE Search Tests", () => {
+  serializeOnSession("javascript");
   test.describe.configure({ mode: "serial" });
 
   const workspacePath = "search-test";

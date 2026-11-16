@@ -1,5 +1,9 @@
 import { test, openBaseIde } from "../../../fixtures/theia.fixture";
 import { BASE_TEMPLATES } from "../../../fixtures/utils/catalog";
+import {
+  acquireSession,
+  releaseSession,
+} from "../../../fixtures/utils/session-lock";
 import { checkTemplate } from "../../../fixtures/utils/launch";
 
 /**
@@ -11,12 +15,17 @@ test.describe("Base templates", () => {
 
   for (const [key, spec] of Object.entries(BASE_TEMPLATES)) {
     test(`${spec.app} / ${spec.template}`, async ({ browser }, testInfo) => {
-      test.setTimeout(15 * 60_000);
-      const ide = await openBaseIde(browser, key);
+      test.setTimeout(35 * 60_000);
+      await acquireSession(key);
       try {
-        await checkTemplate(ide, spec, testInfo);
+        const ide = await openBaseIde(browser, key);
+        try {
+          await checkTemplate(ide, spec, testInfo);
+        } finally {
+          await ide.page.close();
+        }
       } finally {
-        await ide.page.close();
+        releaseSession(key);
       }
     });
   }

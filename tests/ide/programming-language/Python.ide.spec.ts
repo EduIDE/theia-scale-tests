@@ -1,4 +1,5 @@
 import { expect, test } from "../../../fixtures/theia.fixture";
+import { serializeOnSession } from "../../../fixtures/utils/session-lock";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
 import { readFileSync } from "fs";
@@ -9,6 +10,7 @@ import { pasteFromString } from "../../../fixtures/utils/commands";
 const testPrefix = "LoopExample";
 
 test.describe("Python Language Test", () => {
+  serializeOnSession("python");
   test.describe.configure({ mode: "serial" });
 
   test.use({

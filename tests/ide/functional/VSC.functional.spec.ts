@@ -1,3 +1,4 @@
+import { serializeOnSession } from "../../../fixtures/utils/session-lock";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaVSCView } from "../../../pages/ide/custom-pom/theia-vsc";
@@ -5,6 +6,7 @@ import { TheiaVSCView } from "../../../pages/ide/custom-pom/theia-vsc";
 const testPrefix = "VSC-";
 
 test.describe("Theia IDE VSC Tests", () => {
+  serializeOnSession("python");
   test.describe.configure({ mode: "serial" });
 
   test.use({
@@ -13,17 +15,17 @@ test.describe("Theia IDE VSC Tests", () => {
 
   const workspacePath = "vsc-test";
 
-    test.beforeAll(async ({ pythonApp }) => {
-        test.slow();
-        await pythonApp.createAndOpenWorkspace(workspacePath);
-        const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
-        await terminal.submit('git init');
-        await terminal.submit('git config --global user.email "test@test.com"');
-        await terminal.submit('git config --global user.name "Test User"');
-        await terminal.submit('git status');
-        const contents = await terminal.contents();
-        await expect(contents).not.toContain('not a git repository');
-    });
+  test.beforeAll(async ({ pythonApp }) => {
+    test.slow();
+    await pythonApp.createAndOpenWorkspace(workspacePath);
+    const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
+    await terminal.submit("git init");
+    await terminal.submit('git config --global user.email "test@test.com"');
+    await terminal.submit('git config --global user.name "Test User"');
+    await terminal.submit("git status");
+    const contents = await terminal.contents();
+    await expect(contents).not.toContain("not a git repository");
+  });
 
   test.beforeEach(async ({ pythonApp }) => {
     await pythonApp.openWorkspace(workspacePath);

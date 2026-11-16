@@ -1,3 +1,4 @@
+import { serializeOnSession } from "../../../fixtures/utils/session-lock";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { pasteFromString } from "../../../fixtures/utils/commands";
 import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-view";
@@ -11,6 +12,7 @@ const testPrefix = "Editor-";
  */
 
 test.describe("Theia IDE Editor Tests", () => {
+  serializeOnSession("c");
   test.describe.configure({ mode: "serial" });
 
   test.use({
