@@ -36,6 +36,12 @@ The target is one variable. Set `LANDINGPAGE_URL` in `playwright.env` or on the 
 LANDINGPAGE_URL=https://e2e.eduide.student.k8s.aet.cit.tum.de npx playwright test --project=functional --project=platform --workers=4
 ```
 
+Where the functional suite runs:
+
+1. Automatically after every deploy of the e2e environment: EduIDE-deployment (`deploy.yml`, job `e2e-tests`) calls `functional-tests.yml` with `environment` set to the e2e hostname and its `E2E_KEYCLOAK_*` secrets as `KEYCLOAK_USER` / `KEYCLOAK_PWD`.
+2. On pull requests and pushes to main here, against the repository variable `LANDINGPAGE_URL` (the e2e environment).
+3. By hand: `workflow_dispatch` with the `environment` input, or locally with `LANDINGPAGE_URL`.
+
 GitHub: Actions, "Functional Theia Tests", "Run workflow", type the hostname. Pushes and pull requests use the repository variable `LANDINGPAGE_URL`, which points at the e2e environment.
 
 The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalone` apps (`c`, `go`, `java-17`, `java-25`, `javascript`, `python`, `rust`), each with a Saved or Temporary badge, and a build system picker for apps with several templates. The Artemis apps (`java-17`, ...) are hidden on the landing page and only start from Artemis.

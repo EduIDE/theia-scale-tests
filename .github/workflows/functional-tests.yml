@@ -1,4 +1,8 @@
 name: Functional Theia Tests
+# Contract with EduIDE-deployment (runs this after every e2e deploy), keep it
+# stable: workflow_call input `environment` (landing page hostname), optional
+# input `artemis_url`, secrets KEYCLOAK_USER, KEYCLOAK_PWD and optional
+# ARTEMIS_USER, ARTEMIS_PWD.
 on:
   push:
     branches: [main, master]
