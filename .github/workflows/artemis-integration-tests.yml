@@ -14,7 +14,7 @@ permissions:
 # One run per environment at a time: all runs share the test user and its
 # per-user session limit.
 concurrency:
-  group: eduide-${{ inputs.environment }}
+  group: eduide-https://${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
