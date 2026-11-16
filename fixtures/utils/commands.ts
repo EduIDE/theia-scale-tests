@@ -4,8 +4,9 @@ const isMac = process.platform === "darwin";
 const modifierKey = isMac ? "Meta" : "Control";
 
 export const pasteFromString = async (page: Page, text: string) => {
-  await page.evaluate((content) => {
-    navigator.clipboard.writeText(content);
+  // Awaited inside the page: Ctrl+V before the write finished pasted old content.
+  await page.evaluate(async (content) => {
+    await navigator.clipboard.writeText(content);
   }, text);
   await page.keyboard.press(`${modifierKey}+V`);
 };

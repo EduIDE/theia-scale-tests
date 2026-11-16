@@ -141,9 +141,10 @@ export class TheiaMonacoEditor extends TheiaPageObject {
   }
 
   async lineWithText(text: string): Promise<Locator | undefined> {
-    const lineWithText = this.locator.locator(
-      `${this.LINES_SELECTOR}:has-text("${text}")`,
-    );
+    // first(): a word can occur on several lines, which made the lookup fail in strict mode.
+    const lineWithText = this.locator
+      .locator(`${this.LINES_SELECTOR}:has-text("${text}")`)
+      .first();
     await lineWithText.waitFor({ state: "visible" });
     return lineWithText;
   }
