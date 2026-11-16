@@ -173,9 +173,20 @@ export class TheiaExplorerView extends TheiaView {
       fragmentsSoFar += fragment;
 
       const selector = this.treeNodeSelector(fragmentsSoFar);
-      const nextTreeNode = await viewElement?.waitForSelector(selector, {
-        state: "visible",
-      });
+      const nextTreeNode = await viewElement
+        ?.waitForSelector(selector, { state: "visible" })
+        .catch(async (e) => {
+          // Say what the explorer showed, so a flaky miss can be told from a missing file.
+          const shown = await viewElement
+            .$$eval(".theia-TreeNodeSegmentGrow", (els) =>
+              els.slice(0, 15).map((el) => el.textContent),
+            )
+            .catch(() => []);
+          throw new Error(
+            `Explorer node "${fragment}" not found, explorer shows ${JSON.stringify(shown)}`,
+            { cause: e },
+          );
+        });
       if (!nextTreeNode) {
         throw new Error(`Tree node '${selector}' not found in explorer`);
       }

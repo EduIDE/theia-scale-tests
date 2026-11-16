@@ -114,7 +114,8 @@ test.describe("IDE Search Tests", () => {
       .locator(".resultContainer")
       .getByText(randomWord!);
     const occurences = await result.all();
-    expect(occurences.length).toBe(2);
+    // At least one hit per file: a random word can also be part of another word.
+    expect(occurences.length).toBeGreaterThanOrEqual(2);
   });
 
   test.afterAll(async ({ jsApp }) => {
