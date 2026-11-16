@@ -57,8 +57,11 @@ export default defineConfig({
     // baseURL: 'http://127.0.0.1:3000',
     baseURL: process.env.LANDINGPAGE_URL,
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    // Traces of the IDE are large, so only failed tests keep one. A green run
+    // uploads a few megabytes instead of hundreds.
+    trace: "retain-on-failure",
+    video: "off",
+    screenshot: "only-on-failure",
 
     ignoreHTTPSErrors: true,
 
