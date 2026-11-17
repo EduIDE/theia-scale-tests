@@ -141,6 +141,35 @@ test("markdown keeps table cells intact", () => {
   expect(md).not.toContain("second line");
 });
 
+test("markdown escapes backslashes before pipes", () => {
+  const md = renderMarkdown(
+    summarize({
+      report: {
+        stats: { duration: 1000 },
+        suites: [
+          {
+            file: "a.spec.ts",
+            specs: [
+              {
+                title: "path a\\|b",
+                file: "a.spec.ts",
+                tests: [
+                  {
+                    projectName: "functional",
+                    status: "unexpected",
+                    results: [result("failed", 1000, "boom")],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  expect(md).toContain("path a\\\\\\|b");
+});
+
 test("html escapes test titles and error text", () => {
   const html = renderHtml(summarize({ report }), () => []);
   expect(html).not.toContain("<script>alert(1)</script>");
