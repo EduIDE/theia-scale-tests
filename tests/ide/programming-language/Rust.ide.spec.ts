@@ -1,5 +1,8 @@
 import { expect, test } from "../../../fixtures/theia.fixture";
-import { sessionForSpecs } from "../../../fixtures/utils/sessions";
+import {
+  sessionAfterSpecs,
+  sessionForSpecs,
+} from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
@@ -85,4 +88,5 @@ test.describe("Rust Language Test", () => {
     await terminal.submit(`rm -rf ${workspacePath}`);
     await terminal.submit(TEST_FILE_CLEANUP);
   });
+  sessionAfterSpecs("rust");
 });

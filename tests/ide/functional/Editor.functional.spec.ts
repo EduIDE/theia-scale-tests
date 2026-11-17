@@ -1,4 +1,7 @@
-import { sessionForSpecs } from "../../../fixtures/utils/sessions";
+import {
+  sessionAfterSpecs,
+  sessionForSpecs,
+} from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { pasteFromString } from "../../../fixtures/utils/commands";
@@ -107,4 +110,5 @@ test.describe("Theia IDE Editor Tests", () => {
     await terminal.submit(`rm -rf ${workspacePath}`);
     await terminal.submit(TEST_FILE_CLEANUP);
   });
+  sessionAfterSpecs("c");
 });

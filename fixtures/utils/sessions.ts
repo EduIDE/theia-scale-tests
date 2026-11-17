@@ -139,30 +139,38 @@ export async function withSession<T>(
   }
 }
 
+// Per worker: what sessionForSpecs started and still has to give back.
+const open_: Record<string, { held: Held[]; started?: Started }> = {};
+
 /**
  * Call at the top of a describe block of specs that work in the session of a
- * base template: the block launches it, the spec files of one session take
- * turns, and the session is stopped afterwards if this run started it.
+ * base template: the block launches it, and the spec files of one session take
+ * turns. Call sessionAfterSpecs at the END of the block, so the session is
+ * stopped after the afterAll hooks of the specs, which still use it.
  */
 export function sessionForSpecs(key: string) {
   const spec = BASE_TEMPLATES[key];
-  let held: Held[] = [];
-  let started: Started | undefined;
   test.beforeAll(async ({ browser }, testInfo) => {
     test.setTimeout(35 * 60_000);
     if (localUrl(key)) return;
-    held = await acquire(key, "functional", FUNCTIONAL_SLOTS);
-    started = await startSession(browser, spec, testInfo);
-    sessionUrls[key] = started.url;
+    const held = await acquire(key, "functional", FUNCTIONAL_SLOTS);
+    open_[key] = { held };
+    open_[key].started = await startSession(browser, spec, testInfo);
+    sessionUrls[key] = open_[key].started!.url;
   });
+}
+
+/** The last afterAll of a block that used sessionForSpecs: hooks run in the order they are declared. */
+export function sessionAfterSpecs(key: string) {
   test.afterAll(async () => {
+    const entry = open_[key];
+    if (!entry) return;
     try {
-      if (started) await endSession(started, spec);
+      if (entry.started) await endSession(entry.started, BASE_TEMPLATES[key]);
     } finally {
       delete sessionUrls[key];
-      release(held);
-      held = [];
-      started = undefined;
+      release(entry.held);
+      delete open_[key];
     }
   });
 }
