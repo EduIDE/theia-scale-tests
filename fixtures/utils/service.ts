@@ -219,14 +219,25 @@ export class CloudService {
     };
   }
 
-  private async call<T>(method: string, path: string, body?: unknown) {
+  /**
+   * `what` names the call in errors: the path holds the e-mail of the user, and
+   * error text ends up in reports.
+   */
+  private async call<T>(
+    what: string,
+    method: string,
+    path: string,
+    body?: unknown,
+  ) {
     const res = await fetch(`${this.cfg.serviceUrl}/service/${path}`, {
       method,
       headers: await this.headers(),
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`${method} ${path} failed: ${res.status}`);
-    return (await res.json()) as T;
+    if (!res.ok) throw new Error(`${what} failed: ${res.status}`);
+    // A stop or delete may answer with an empty body.
+    const text = await res.text();
+    return (text ? JSON.parse(text) : undefined) as T;
   }
 
   private userPath(kind: "session" | "workspace") {
@@ -234,15 +245,15 @@ export class CloudService {
   }
 
   listSessions(): Promise<SessionSpec[]> {
-    return this.call("GET", this.userPath("session"));
+    return this.call("List sessions", "GET", this.userPath("session"));
   }
 
   listWorkspaces(): Promise<WorkspaceInfo[]> {
-    return this.call("GET", this.userPath("workspace"));
+    return this.call("List workspaces", "GET", this.userPath("workspace"));
   }
 
   async stopSession(name: string): Promise<void> {
-    await this.call("DELETE", "session", {
+    await this.call("Stop session", "DELETE", "session", {
       kind: "sessionStopRequest",
       appId: this.cfg.serviceAuthToken,
       user: this.user,
@@ -251,7 +262,7 @@ export class CloudService {
   }
 
   async deleteWorkspace(name: string): Promise<void> {
-    await this.call("DELETE", "workspace", {
+    await this.call("Delete workspace", "DELETE", "workspace", {
       kind: "workspaceDeletionRequest",
       appId: this.cfg.serviceAuthToken,
       user: this.user,

@@ -118,6 +118,9 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
       - name: Run Playwright tests
+        # A hang must end here, with the summary and report still uploaded
+        # afterwards, not eat the whole job.
+        timeout-minutes: 35
         run: npx playwright test --project=functional --project=platform --workers=6
       # Rendered on the run page, and for a call from another repository on
       # the caller's run page. Also runs when the tests failed.

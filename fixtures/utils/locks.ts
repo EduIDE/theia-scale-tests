@@ -80,7 +80,9 @@ export async function takeSlot(
       if (tryTake(dir, owner)) return hold(dir, owner);
     }
     if (Date.now() > deadline) {
-      throw new Error(`Waited too long for a free "${pool}" slot`);
+      throw new Error(
+        `Waited ${maxWaitMs / 60_000} min for a free "${pool}" slot, they are held by other specs`,
+      );
     }
     await sleep(2000);
   }
@@ -93,7 +95,9 @@ export async function takeLock(name: string, maxWaitMs: number): Promise<Held> {
   const deadline = Date.now() + maxWaitMs;
   while (!tryTake(dir, owner)) {
     if (Date.now() > deadline) {
-      throw new Error(`Waited too long for the lock "${name}"`);
+      throw new Error(
+        `Waited ${maxWaitMs / 60_000} min for the lock "${name}", another spec holds that session`,
+      );
     }
     await sleep(2000);
   }

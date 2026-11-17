@@ -12,7 +12,9 @@ import { CloudService } from "./service";
  */
 export const FUNCTIONAL_SLOTS = 3;
 export const PLATFORM_SLOTS = 2;
-const MAX_WAIT_MS = 30 * 60_000;
+// A wait this long means another spec is stuck holding what we need, so the
+// run fails with a message instead of using up the job.
+const MAX_WAIT_MS = 20 * 60_000;
 
 /** Session URLs of the specs of this worker, by base template key. */
 export const sessionUrls: Record<string, string> = {};

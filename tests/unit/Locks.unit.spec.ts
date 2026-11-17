@@ -15,7 +15,7 @@ test.afterAll(() => clearLocks());
 
 test("a lock is exclusive and only its owner releases it", async () => {
   const first = await takeLock("a", 1000);
-  await expect(takeLock("a", 300)).rejects.toThrow("Waited too long");
+  await expect(takeLock("a", 300)).rejects.toThrow("Waited");
   first.release();
   const second = await takeLock("a", 1000);
   // A holder that already lost the lock must not delete the new one.
@@ -28,7 +28,7 @@ test("a lock is exclusive and only its owner releases it", async () => {
 test("slots are limited to their count", async () => {
   const a = await takeSlot("p", 2, 1000);
   const b = await takeSlot("p", 2, 1000);
-  await expect(takeSlot("p", 2, 300)).rejects.toThrow("Waited too long");
+  await expect(takeSlot("p", 2, 300)).rejects.toThrow("Waited");
   a.release();
   const c = await takeSlot("p", 2, 1000);
   b.release();
