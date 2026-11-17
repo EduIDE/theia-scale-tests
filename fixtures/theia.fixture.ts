@@ -4,9 +4,8 @@ import { TheiaWorkspace } from "../pages/ide/theia-pom/theia-workspace";
 import { IDEPage } from "../pages/ide/IDEPage";
 import { ArtemisPage } from "../pages/artemis/ArtemisPage";
 import { LandingPage } from "../pages/landing/LandingPage";
-import { BASE_TEMPLATES, urlFileName } from "./utils/catalog";
-import fs from "fs";
-import path from "path";
+import { BASE_TEMPLATES } from "./utils/catalog";
+import { localUrl, sessionUrls } from "./utils/sessions";
 
 interface TheiaFixtures {
   landingPage: LandingPage;
@@ -19,28 +18,14 @@ interface TheiaFixtures {
   artemisTheia: IDEPage;
 }
 
-/** LOCAL_URL_<KEY> points at a local container and wins over the launched session. */
-const LOCAL_KEYS: Record<string, string> = {
-  c: "C",
-  java: "JAVA",
-  python: "PYTHON",
-  rust: "RUST",
-  javascript: "JS",
-};
-
-/** Opens the IDE of a base template, which functional.setup.ts launched. */
+/** Opens the IDE of a base template, which the spec's session hook launched. */
 export async function openBaseIde(browser: Browser, key: string) {
-  const local = process.env[`LOCAL_URL_${LOCAL_KEYS[key]}`];
-  const ideURL =
-    local ??
-    fs.readFileSync(
-      path.join(
-        process.cwd(),
-        "test-data/functional",
-        urlFileName(BASE_TEMPLATES[key]),
-      ),
-      "utf8",
+  const ideURL = localUrl(key) ?? sessionUrls[key];
+  if (!ideURL) {
+    throw new Error(
+      `No session for "${key}": call sessionForSpecs("${key}") in the spec`,
     );
+  }
   const page = await browser.newPage();
   const workspace = new TheiaWorkspace();
   workspace.setPath("/home/project");

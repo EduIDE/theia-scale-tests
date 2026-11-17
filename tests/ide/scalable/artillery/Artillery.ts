@@ -1,5 +1,6 @@
 import { Page } from "@playwright/test";
 import { LandingPage } from "../../../../pages/landing/LandingPage";
+import { CloudService } from "../../../../fixtures/utils/service";
 import { virtualStudent } from "../VirtualStudents";
 import dotenv from "dotenv";
 import path from "path";
@@ -16,6 +17,12 @@ const numUsers = Number.parseInt(process.env.NUM_INSTANCES ?? "", 10);
 if (!Number.isFinite(numUsers) || numUsers < 1) {
   throw new Error(
     `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}.`,
+  );
+}
+// Every virtual user is a session of the same account, which the service caps.
+if (numUsers > 10) {
+  throw new Error(
+    `NUM_INSTANCES is ${numUsers}, but one user may hold at most 10 sessions.`,
   );
 }
 if (!process.env.LANDINGPAGE_URL) {
@@ -47,6 +54,10 @@ export const scenarios = [
   },
 ];
 
+// All virtual users share one session of the account, so it is stopped when the
+// last of them is done.
+let running = 0;
+
 async function runVirtualStudent(
   page: Page,
   vuContext: any,
@@ -55,7 +66,31 @@ async function runVirtualStudent(
 ) {
   const { step } = test;
   console.log("Starting virtual student");
+  running++;
+  try {
+    await runStudent(page, test, step);
+  } finally {
+    if (--running === 0) {
+      try {
+        await page.goto(process.env.LANDINGPAGE_URL!);
+        const cfg = await new LandingPage(page).config();
+        const service = await CloudService.fromCookies(
+          await page.context().cookies(),
+          cfg,
+          process.env.LANDINGPAGE_URL!,
+        );
+        await service.stopTemplate({
+          app: "java-17-standalone",
+          template: "maven",
+        });
+      } catch (e) {
+        console.error("Could not stop the session", e);
+      }
+    }
+  }
+}
 
+async function runStudent(page: Page, test: any, step: any) {
   await step("Artillery: Waiting for theia to be loaded", async () => {
     await page.goto(process.env.LANDINGPAGE_URL!);
     const landingPage = new LandingPage(page);

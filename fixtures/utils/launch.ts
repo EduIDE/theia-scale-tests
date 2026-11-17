@@ -5,9 +5,8 @@ import { TheiaApp } from "../../pages/ide/theia-pom/theia-app";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWorkspace } from "../../pages/ide/theia-pom/theia-workspace";
 import { TemplateSpec, Task } from "./catalog";
+import { SESSION_FILE } from "./auth-files";
 import { recordMetric } from "./metrics";
-
-export const AUTH_FILE = ".auth/keycloak_user.json";
 
 export interface LaunchedIde {
   page: Page;
@@ -28,7 +27,7 @@ export async function launchIde(
   metricName = "launch",
 ): Promise<LaunchedIde> {
   const context = await browser.newContext({
-    storageState: AUTH_FILE,
+    storageState: SESSION_FILE,
     permissions: ["clipboard-read", "clipboard-write"],
   });
   // Cold image pulls make the IDE load slower than a normal action.

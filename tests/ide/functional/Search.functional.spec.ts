@@ -1,4 +1,4 @@
-import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { sessionForSpecs } from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
@@ -17,7 +17,7 @@ import { getRandomWord } from "../../../fixtures/utils/commands";
 const testPrefix = "Search-";
 
 test.describe("IDE Search Tests", () => {
-  serializeOnSession("javascript");
+  sessionForSpecs("javascript");
   test.describe.configure({ mode: "serial" });
 
   const workspacePath = "search-test";
@@ -109,15 +109,20 @@ test.describe("IDE Search Tests", () => {
     await editor2.save();
     const search = await jsApp.theiaApp.openView(TheiaSearchView);
     await search.search(randomWord!);
-    const result = search.page
+    // One result block per file that contains the word, and both files must
+    // have one. The results fill in while the search runs, so this waits.
+    const blocks = search.page
       .locator(search.viewSelector)
-      .locator(".resultContainer")
-      .getByText(randomWord!);
-    // At least one hit per file: a random word can also be part of another
-    // word. The results fill in while the search runs, so this waits for them.
-    await expect
-      .poll(async () => (await result.all()).length, { timeout: 30_000 })
-      .toBeGreaterThanOrEqual(2);
+      .locator(".resultContainer");
+    for (const name of [fileName + "1", fileName + "2"]) {
+      await expect(
+        blocks
+          .filter({ hasText: name })
+          .filter({ hasText: randomWord! })
+          .first(),
+        `a result in ${name}`,
+      ).toBeVisible({ timeout: 30_000 });
+    }
   });
 
   test.afterAll(async ({ jsApp }) => {

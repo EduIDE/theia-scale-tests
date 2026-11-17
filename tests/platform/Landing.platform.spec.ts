@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/theia.fixture";
+import { LOGOUT_SESSION_FILE } from "../../fixtures/utils/auth-files";
 import { TEMPLATES } from "../../fixtures/utils/catalog";
 
 test.describe("Landing page (not logged in)", () => {
@@ -24,7 +25,9 @@ test.describe("Landing page (not logged in)", () => {
 // Its own login from global setup: logging out ends that Keycloak session, which
 // the other tests must not share.
 test.describe("Logout", () => {
-  test.use({ storageState: ".auth/keycloak_logout_user.json" });
+  test.use({ storageState: LOGOUT_SESSION_FILE });
+  // Logging out ends the stored session, so a retry could not log in again.
+  test.describe.configure({ retries: 0 });
 
   test("Logout returns to the login page", async ({ landingPage }) => {
     await landingPage.waitForLoggedIn();

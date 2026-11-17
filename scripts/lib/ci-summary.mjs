@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 
+// eslint-disable-next-line no-control-regex
 const ANSI = /\x1b\[[0-9;]*[A-Za-z]/g;
 const MAX_ERROR = 200;
 const MAX_IMAGE_BYTES = 1_500_000;
@@ -85,7 +86,6 @@ export function readMetrics(dir) {
 }
 
 const minutes = (ms) => `${(ms / 60000).toFixed(1)} min`;
-const seconds = (ms) => `${Math.round(ms / 1000)} s`;
 
 /** Everything both renderings show, computed once. */
 export function summarize({ report, metrics = [], environment = "" }) {
@@ -277,4 +277,3 @@ ${
 `;
 }
 
-export { seconds };

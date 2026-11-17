@@ -1,45 +1,30 @@
 import { test } from "@playwright/test";
 import { EXTRA_TEMPLATES } from "../../fixtures/utils/catalog";
-import { checkTemplate, launchIde } from "../../fixtures/utils/launch";
-import { LandingPage } from "../../pages/landing/LandingPage";
-import { CloudService } from "../../fixtures/utils/service";
+import { checkTemplate } from "../../fixtures/utils/launch";
+import { PLATFORM_SLOTS, withSession } from "../../fixtures/utils/sessions";
 
 /**
- * Every template that is not kept launched by the functional setup: launch it,
- * check its files and tasks, then stop the session again. One at a time, so
- * the run holds at most one extra session.
+ * Every template that the functional specs do not work in: launch it in a
+ * fresh workspace, check its files and tasks, then stop the session again. One
+ * template at a time, and each test stands on its own, so a failing template
+ * does not hide the ones after it.
  */
 test.describe("Remaining templates", () => {
-  test.describe.configure({ mode: "serial", timeout: 20 * 60_000 });
-
-  let service: CloudService;
-
-  test.beforeAll(async ({ browser }) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    const cfg = await new LandingPage(page).config();
-    await page.close();
-    service = await CloudService.connect(
-      browser,
-      cfg,
-      process.env.LANDINGPAGE_URL!,
-    );
-  });
-
-  test.afterAll(async () => {
-    await service?.dispose();
-  });
-
   for (const spec of EXTRA_TEMPLATES) {
     test(`${spec.app} / ${spec.template}`, async ({ browser }, testInfo) => {
-      test.setTimeout(20 * 60_000);
-      const { page, ide } = await launchIde(browser, spec, testInfo);
-      try {
-        await checkTemplate(ide, spec, testInfo);
-      } finally {
-        await page.context().close();
-        await service.stopTemplate(spec);
-      }
+      test.setTimeout(25 * 60_000);
+      await withSession(
+        {
+          key: "platform-templates",
+          pool: "platform",
+          slots: PLATFORM_SLOTS,
+          spec,
+          browser,
+          testInfo,
+          keepOpen: true,
+        },
+        ({ ide }) => checkTemplate(ide, spec, testInfo),
+      );
     });
   }
 });

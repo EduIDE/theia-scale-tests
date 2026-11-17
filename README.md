@@ -52,7 +52,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
   ```bash
   npx playwright test --project=functional --project=platform --workers=6
   ```
-  This takes about 20 to 30 minutes. The first launch after a deploy can take minutes while images are pulled.
+  This takes about 15 minutes (13 to 15 in CI). The first launch after a deploy can take minutes while images are pulled.
 - To run only the pure helper tests (no environment needed): `npm run test:unit`
 - To run tests locally using a Theia Instance on localhost, change the environment variable to the corresponding port and run the tests using:
 
@@ -63,8 +63,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 - To run the load tests, run:
 
   > **_NOTE:_**
-  As load tests use a single account, pay attention that the session per user limit is min the amount of instances you want!
-
+  > As load tests use a single account, pay attention that the session per user limit is min the amount of instances you want!
 
   ```bash
   npx playwright test --project=scale
@@ -145,41 +144,50 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 
   If the benchmark setup is hard to reproduce from this cleaned test-suite branch, compare against the development branch `feature/benchmark-test3-ui-latency`, which contains the original local benchmark campaign state and debugging history.
 
-| Project | Runs | Where |
-| ------- | ---- | ----- |
-| unit | Pure helper specs (`*.unit.spec.ts`), no environment | CI on every run |
-| functional | Specs on the templates the setup keeps launched: editor, search, terminal, source control, languages, template files and tasks (`*.functional.spec.ts`, `*.ide.spec.ts`) | CI on every run |
-| platform | Landing page, login and logout, remaining templates, experience levels, workspace mode, session restart (`*.platform.spec.ts`) | CI on every run |
-| local | The functional specs against local containers (`LOCAL_URL_C`, `_JAVA`, `_PYTHON`, `_RUST`, `_JS`) | by hand |
-| scale | Scalability tests (`*.scale.spec.ts`) | manual workflow |
-| artillery | Load test with [Artillery.io](https://artillery.io), refuses to run without a valid `NUM_INSTANCES` and `LANDINGPAGE_URL`, headless unless `HEADED=true` | manual workflow |
-| artemis | Integration with Artemis (needs an Artemis test server and the exercise's Theia image, for example `java-17`) | manual workflow |
-| benchmark | Language server latency, see above | by hand |
-| \*-setup, \*-teardown | Not meant to be run on their own, dependencies are set | |
+| Project                     | Runs                                                                                                                                                                              | Where           |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| unit                        | Pure helper specs (`*.unit.spec.ts`), no environment                                                                                                                              | CI on every run |
+| functional                  | Specs that work in a launched session of a base template: editor, search, terminal, source control, languages, template files and tasks (`*.functional.spec.ts`, `*.ide.spec.ts`) | CI on every run |
+| platform                    | Landing page, login and logout, remaining templates, experience levels, workspace mode, session restart (`*.platform.spec.ts`)                                                    | CI on every run |
+| local                       | The functional specs against local containers (`LOCAL_URL_C`, `_JAVA`, `_PYTHON`, `_RUST`, `_JS`)                                                                                 | by hand         |
+| scale                       | Scalability tests (`*.scale.spec.ts`)                                                                                                                                             | manual workflow |
+| artillery                   | Load test with [Artillery.io](https://artillery.io), refuses to run without a valid `NUM_INSTANCES` and `LANDINGPAGE_URL`, headless unless `HEADED=true`                          | manual workflow |
+| artemis                     | Integration with Artemis (needs an Artemis test server and the exercise's Theia image, for example `java-17`)                                                                     | manual workflow |
+| benchmark                   | Language server latency, see above                                                                                                                                                | by hand         |
+| scale-setup, scale-teardown | Not meant to be run on their own, dependencies are set                                                                                                                            |                 |
 
-`functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). The setup keeps five sessions (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) and the platform specs use at most two more at a time. Sessions are stopped through the Theia Cloud service REST API when they are no longer needed (logging out of the landing page does not stop them). Only one run per environment at a time: the workflow queues runs per environment.
+`functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). Each spec file launches the session it needs and stops it again, if this run started it. A run holds at most five sessions: three for the functional specs, two for the platform specs. Spec files of one base template (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) take turns, using lock files in `test-data/locks` that global setup clears at the start of a run. A session that was already running (a leftover or another run) is used but never stopped, and a session is started in a fresh workspace: the workspace of the template is removed first, so the template copy and the template tasks are tested on a new workspace. Sessions are stopped through the Theia Cloud service REST API (logging out of the landing page does not stop them); the service calls are plain `fetch` with the ID token of the stored login, never a browser context, so a trace can not contain tokens.
+
+Two runs against one environment at the same time are not safe: they use the same user, so the same workspaces and sessions per app and template. The `concurrency` group of `functional-tests.yml` queues runs of one repository only. When EduIDE-deployment calls the workflow, the group lives in that repository, so a pull request run here can overlap the run after a deploy. Each run stays within five sessions, so the per-user limit holds, but a template that both runs launch is one shared session. Keep manual runs away from deploys.
 
 ### When CI fails
 
-1. The run page: the job summary lists the verdict, counts, a table of failed and flaky tests with the first line of each error, durations per spec and the metrics. For a run called from EduIDE-deployment it appears on the caller's run page.
+1. The run page: the job summary lists the verdict, counts, a table of failed, flaky and recovered tests with the first line of each error, durations per spec and the metrics. For a run called from EduIDE-deployment it appears on the caller's run page.
 2. The `ci-summary` artifact: one `index.html` with the same content and the screenshots of failed tests inline. Download, unzip, open.
-3. The `playwright-report` artifact (HTML report with traces) and, on failure, `test-results` (error context and traces per test).
+3. The `playwright-report` artifact (HTML report with screenshots and error context) and, on failure, `test-results`. There are no traces in CI.
 
 `scripts/ci-summary.mjs` builds the first two from `test-results/results.json` and `test-data/metrics/`.
 
 ### Login
 
-The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots and traces to the report, and the report is public, so nothing that types credentials is a test. A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.
+The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots to the report, and the report is public, so nothing that types credentials is a test. Traces are off in CI because they record every request with its cookies and tokens; set `PW_TRACE=1` to keep traces of failed tests locally. Credentials are only typed on the Keycloak host the landing page config names (or an origin in `LOGIN_HOST_ALLOWLIST`, comma separated). A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.
 
 ### Metrics
 
 Specs record durations as Playwright annotations (HTML report) and as one JSON file each in `test-data/metrics/`, which the workflow uploads with the report:
 
 ```json
-{ "name": "launch", "app": "java-17-standalone", "template": "maven", "ms": 31842, "env": "e2e.eduide.student.k8s.aet.cit.tum.de", "timestamp": "2026-11-16T15:04:05.000Z" }
+{
+  "name": "launch",
+  "app": "java-17-standalone",
+  "template": "maven",
+  "ms": 31842,
+  "env": "e2e.eduide.student.k8s.aet.cit.tum.de",
+  "timestamp": "2026-11-16T15:04:05.000Z"
+}
 ```
 
-`login` (time to the logged-in landing page), `launch` (tile click to IDE ready) per app and template, `task-run`, `task-build` and `task-test` per template, and `restart` (relaunch of a stopped Saved session).
+`login` (time to the logged-in landing page), `launch` (tile click to IDE ready) per app and template, `task-run`, `task-build` and `task-test` per template, and `restart` (relaunch of a stopped Saved session). `launch` is written once per spec file that launches the session, the last one wins. `launch` is written once per spec file that launches the session, the last one wins.
 
 ### Running the functional suite from another repository
 
@@ -197,10 +205,10 @@ e2e:
     KEYCLOAK_PWD: ${{ secrets.E2E_KEYCLOAK_PWD }}
 ```
 
-| Input | Required | |
-|---|---|---|
-| `environment` | yes | Landing page hostname. Becomes `LANDINGPAGE_URL` as `https://<environment>` |
-| `artemis_url` | no | Artemis instance to integrate against, as a full URL. Environments front different Artemis instances, so it belongs to the caller. Empty falls back to the `ARTEMIS_URL` repository variable |
+| Input         | Required |                                                                                                                                                                                              |
+| ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `environment` | yes      | Landing page hostname. Becomes `LANDINGPAGE_URL` as `https://<environment>`                                                                                                                  |
+| `artemis_url` | no       | Artemis instance to integrate against, as a full URL. Environments front different Artemis instances, so it belongs to the caller. Empty falls back to the `ARTEMIS_URL` repository variable |
 
 `KEYCLOAK_USER` and `KEYCLOAK_PWD` are required; `ARTEMIS_USER` and `ARTEMIS_PWD`
 are optional and only needed by suites that reach Artemis.

@@ -20,6 +20,13 @@ if (!Number.isInteger(instances) || instances < 1) {
     `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}.`,
   );
 }
+// The service refuses more than sessionsPerUser (10 on e2e) sessions for one
+// user, and every instance here is a session of the same account.
+if (instances > 10) {
+  throw new Error(
+    `NUM_INSTANCES is ${instances}, but one user may hold at most 10 sessions.`,
+  );
+}
 const setupTimeoutMs = process.env.BENCH_SETUP_TIMEOUT_MS
   ? parseInt(process.env.BENCH_SETUP_TIMEOUT_MS, 10)
   : 420000;

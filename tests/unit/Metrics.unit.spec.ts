@@ -8,7 +8,7 @@ import {
 } from "../../fixtures/utils/metrics";
 import {
   decodeJwt,
-  parseConfigJs,
+  workspaceName,
   matchSessions,
   pkcePair,
   tokenExpiresSoon,
@@ -60,13 +60,11 @@ test("pkce challenge is the S256 hash of the verifier", () => {
   );
 });
 
-test("matchSessions narrows by template only when sessions say which they are", () => {
+test("matchSessions finds exactly one template, never a sibling", () => {
+  const user = "alice";
+  const maven = workspaceName("java-17-standalone", "maven", user);
   const sessions = [
-    {
-      name: "a",
-      appDefinition: "java-17-standalone",
-      envVars: { TEMPLATE: "maven" },
-    },
+    { name: "a", appDefinition: "java-17-standalone", workspace: maven },
     {
       name: "b",
       appDefinition: "java-17-standalone",
@@ -75,18 +73,22 @@ test("matchSessions narrows by template only when sessions say which they are", 
     { name: "c", appDefinition: "go-standalone" },
   ];
   const names = (app: string, template: string) =>
-    matchSessions(sessions, { app, template }).map((s) => s.name);
+    matchSessions(sessions, { app, template }, user).map((s) => s.name);
+  expect(names("java-17-standalone", "maven")).toEqual(["a"]);
   expect(names("java-17-standalone", "gradle")).toEqual(["b"]);
-  expect(names("go-standalone", "go")).toEqual(["c"]);
+  // No fallback to "every session of the app" for a session that says nothing.
+  expect(names("go-standalone", "go")).toEqual([]);
   expect(names("rust-standalone", "cargo")).toEqual([]);
 });
 
-test("parseConfigJs returns the assigned config", () => {
-  const cfg = parseConfigJs(
-    'window.theiaCloudConfig = { serviceUrl: "https://s", additionalApps: [] };',
+test("workspaceName follows the landing page", () => {
+  const name = workspaceName("java-17-standalone", "maven", "Alice.Example");
+  expect(name).toMatch(
+    /^ws-java-17-stan-playground-alice-exampl-[0-9a-f]{8}$/,
   );
-  expect(cfg.serviceUrl).toBe("https://s");
-  expect(() => parseConfigJs("var x = 1;")).toThrow();
+  expect(
+    workspaceName("java-17-standalone", "gradle", "Alice.Example"),
+  ).not.toBe(name);
 });
 
 test("tokenExpiresSoon looks at the exp claim", () => {

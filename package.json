@@ -39,5 +39,10 @@
     "fsevents": false,
     "unix-dgram": false,
     "protobufjs@7.6.6": true
+  },
+  "overrides": {
+    "@playwright/test": "$@playwright/test",
+    "playwright": "1.65.1",
+    "playwright-core": "1.65.1"
   }
 }

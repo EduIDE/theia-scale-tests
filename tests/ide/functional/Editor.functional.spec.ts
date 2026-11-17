@@ -1,4 +1,4 @@
-import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { sessionForSpecs } from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { pasteFromString } from "../../../fixtures/utils/commands";
@@ -13,7 +13,7 @@ const testPrefix = "Editor-";
  */
 
 test.describe("Theia IDE Editor Tests", () => {
-  serializeOnSession("c");
+  sessionForSpecs("c");
   test.describe.configure({ mode: "serial" });
 
   test.use({

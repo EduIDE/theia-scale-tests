@@ -1,6 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { debugLog } from "../../fixtures/utils/debug-logging";
-import { CloudConfig, parseConfigJs } from "../../fixtures/utils/service";
+import type { CloudConfig } from "../../fixtures/utils/service";
 
 /**
  * The EduIDE landing page: login, one tile per offered app and, for apps with
@@ -14,14 +14,32 @@ export class LandingPage {
   }
 
   /**
-   * The config the page runs on. Read from /config.js rather than from the
-   * page, which is still redirecting through Keycloak right after the load.
+   * The config the page runs on, read from the page itself. Right after the
+   * load the page can still be redirecting through Keycloak, which destroys the
+   * context under the read, so it is repeated until the page rests.
    */
   async config(): Promise<CloudConfig> {
-    const res = await this.page.request.get(
-      new URL("/config.js", process.env.LANDINGPAGE_URL).toString(),
-    );
-    return parseConfigJs(await res.text());
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await this.page.waitForFunction(
+          () =>
+            (window as unknown as { theiaCloudConfig?: unknown })
+              .theiaCloudConfig,
+        );
+        return await this.page.evaluate(
+          () =>
+            (window as unknown as { theiaCloudConfig: CloudConfig })
+              .theiaCloudConfig,
+        );
+      } catch (e) {
+        if (
+          attempt >= 5 ||
+          !/context was destroyed|navigation/i.test(String(e))
+        )
+          throw e;
+        await this.page.waitForLoadState("domcontentloaded");
+      }
+    }
   }
 
   get loginButton(): Locator {
@@ -77,7 +95,14 @@ export class LandingPage {
       });
     });
     const t = { timeout: 20_000 };
+    const keycloak = new URL((await this.config()).keycloakAuthUrl).origin;
     await this.loginButton.click(t);
+    // Credentials only go to the Keycloak this landing page names, or to a host
+    // listed in LOGIN_HOST_ALLOWLIST (comma separated origins).
+    await this.page.waitForURL(
+      (url) => allowedLoginOrigins(keycloak).includes(url.origin),
+      { timeout: 20_000 },
+    );
     await this.page.locator("#username").fill(username, t);
     await this.page.locator("#password").fill(password, t);
     await this.page
@@ -121,4 +146,14 @@ export class LandingPage {
   setPage(page: Page) {
     this.page = page;
   }
+}
+
+function allowedLoginOrigins(keycloak: string): string[] {
+  return [
+    keycloak,
+    ...(process.env.LOGIN_HOST_ALLOWLIST ?? "")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean),
+  ];
 }

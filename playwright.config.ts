@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
+import {
+  ARTEMIS_SESSION_FILE,
+  SESSION_FILE,
+} from "./fixtures/utils/auth-files";
 
 /**
  * Read environment variables from file.
@@ -8,12 +12,8 @@ import dotenv from "dotenv";
 dotenv.config({ path: `./playwright.env` });
 
 const authDisabled = process.env.DISABLE_AUTH === "1";
-const keycloakStorageState = authDisabled
-  ? undefined
-  : ".auth/keycloak_user.json";
-const artemisStorageState = authDisabled
-  ? undefined
-  : ".auth/artemis_user.json";
+const keycloakStorageState = authDisabled ? undefined : SESSION_FILE;
+const artemisStorageState = authDisabled ? undefined : ARTEMIS_SESSION_FILE;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -57,14 +57,17 @@ export default defineConfig({
     // baseURL: 'http://127.0.0.1:3000',
     baseURL: process.env.LANDINGPAGE_URL,
 
-    // Snapshots and screenshots make up almost all of a trace of the IDE
-    // (hundreds of MB per run), so a trace keeps actions, network and console.
-    trace: {
-      mode: "retain-on-failure",
-      snapshots: false,
-      screenshots: false,
-      sources: false,
-    },
+    // Off in CI: a trace records every request with its headers and cookies,
+    // and the reports are public. Set PW_TRACE=1 to keep traces of failed
+    // tests when debugging locally.
+    trace: process.env.PW_TRACE
+      ? {
+          mode: "retain-on-failure",
+          snapshots: false,
+          screenshots: false,
+          sources: false,
+        }
+      : "off",
     video: "off",
     screenshot: "only-on-failure",
 
@@ -80,26 +83,20 @@ export default defineConfig({
       name: "unit",
       testMatch: /.*\.unit\.spec\.ts/,
     },
-    // Setup project for IDE URL
-    {
-      name: "functional-setup",
-      testMatch: "**/functional.setup.ts",
-      use: {
-        storageState: keycloakStorageState,
-      },
-      teardown: "functional-teardown",
-    },
-
-    // Stops the sessions functional-setup launched
-    {
-      name: "functional-teardown",
-      testMatch: "**/functional.teardown.ts",
-    },
-
     // Setup project for Scale tests
     {
       name: "scale-setup",
       testMatch: "**/scale.setup.ts",
+      use: {
+        storageState: keycloakStorageState,
+      },
+      teardown: "scale-teardown",
+    },
+
+    // Stops the session scale-setup launched
+    {
+      name: "scale-teardown",
+      testMatch: "**/scale.teardown.ts",
       use: {
         storageState: keycloakStorageState,
       },
@@ -118,11 +115,10 @@ export default defineConfig({
           slowMo: 500, //TODO: 500ms delay between actions as temp solution for slow UI
         },
       },
-      dependencies: ["functional-setup"],
     },
 
-    // Landing page, login and the templates that functional-setup does not
-    // keep launched. Runs next to functional, needs only the stored login.
+    // Landing page, login and the templates the functional specs do not work
+    // in. Runs next to functional, needs only the stored login.
     {
       name: "platform",
       testMatch: /.*\.platform\.spec\.ts/,

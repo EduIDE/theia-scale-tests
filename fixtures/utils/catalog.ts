@@ -101,7 +101,11 @@ export const TEMPLATES: TemplateSpec[] = [
     app: "python-standalone",
     template: "python",
     files: ["pyproject.toml", "src", "tests"],
-    run: { label: "Run", command: "PYTHONPATH=src python -m example.main", output: hello },
+    run: {
+      label: "Run",
+      command: "PYTHONPATH=src python -m example.main",
+      output: hello,
+    },
     test: { label: "Test", command: "pytest" },
   },
   {
@@ -137,8 +141,4 @@ function find(app: string, template: string): TemplateSpec {
   const spec = TEMPLATES.find((t) => t.app === app && t.template === template);
   if (!spec) throw new Error(`Unknown template ${app}/${template}`);
   return spec;
-}
-
-export function urlFileName(spec: TemplateSpec): string {
-  return `ide-url-${spec.app}-${spec.template}.txt`;
 }

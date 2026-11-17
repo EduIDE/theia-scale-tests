@@ -77,7 +77,7 @@ export class IDEPage {
     // Right after a reload the first creation is sometimes lost without an
     // error, so a file that does not show up in the explorer is created once more.
     if (fileName.includes("/")) return;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; ; attempt++) {
       await this.theiaApp.openView(TheiaExplorerView);
       const shown = await this.page
         .locator(".theia-TreeNodeSegmentGrow")
@@ -87,6 +87,11 @@ export class IDEPage {
         .then(() => true)
         .catch(() => false);
       if (shown) return;
+      if (attempt >= 1) {
+        throw new Error(
+          `New file "${fileName}" did not show up after two attempts`,
+        );
+      }
       // Not hidden: a lost first "New File" is something a student would see.
       test.info().annotations.push({
         type: "recovered",

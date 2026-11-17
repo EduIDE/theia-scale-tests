@@ -1,5 +1,5 @@
 import { expect, test } from "../../../fixtures/theia.fixture";
-import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { sessionForSpecs } from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
@@ -11,7 +11,7 @@ import { pasteFromString } from "../../../fixtures/utils/commands";
 const testPrefix = "LoopExample";
 
 test.describe("Java Language Test", () => {
-  serializeOnSession("java");
+  sessionForSpecs("java");
   test.describe.configure({ mode: "serial" });
 
   test.use({

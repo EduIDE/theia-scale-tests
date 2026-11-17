@@ -49,15 +49,3 @@ export function recordMetric(testInfo: TestInfo | undefined, m: Metric) {
   );
   return record;
 }
-
-/** Runs `fn` and records how long it took, also when it throws. */
-export async function timed<T>(
-  testInfo: TestInfo | undefined,
-  m: Omit<Metric, "ms">,
-  fn: () => Promise<T>,
-): Promise<T> {
-  const start = Date.now();
-  const result = await fn();
-  recordMetric(testInfo, { ...m, ms: Date.now() - start });
-  return result;
-}

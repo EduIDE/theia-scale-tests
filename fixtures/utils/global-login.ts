@@ -1,17 +1,14 @@
 import { chromium, Page } from "@playwright/test";
 import fs from "fs";
-import path from "path";
 import { LandingPage } from "../../pages/landing/LandingPage";
-import { recordMetric } from "./metrics";
-
-export const AUTH_DIR = path.join(process.cwd(), ".auth");
-export const SESSION_FILE = path.join(AUTH_DIR, "keycloak_user.json");
-/** A second login, so the logout test ends a session nobody else uses. */
-export const ARTEMIS_SESSION_FILE = path.join(AUTH_DIR, "artemis_user.json");
-export const LOGOUT_SESSION_FILE = path.join(
+import {
+  ARTEMIS_SESSION_FILE,
   AUTH_DIR,
-  "keycloak_logout_user.json",
-);
+  LOGOUT_SESSION_FILE,
+  SESSION_FILE,
+} from "./auth-files";
+import { clearLocks } from "./locks";
+import { recordMetric } from "./metrics";
 
 class LoginError extends Error {
   constructor(
@@ -103,6 +100,8 @@ export default async function globalSetup() {
   if (only("unit") || only("local")) return;
 
   fs.mkdirSync(AUTH_DIR, { recursive: true });
+  // Nothing from an earlier run may stay locked.
+  clearLocks();
   const needs = (vars: string[]) => {
     for (const v of vars)
       if (!process.env[v]) throw new Error(`${v} must be set, see README`);

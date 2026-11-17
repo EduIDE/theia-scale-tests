@@ -1,4 +1,4 @@
-import { serializeOnSession } from "../../../fixtures/utils/session-lock";
+import { sessionForSpecs } from "../../../fixtures/utils/sessions";
 import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { test, expect } from "../../../fixtures/theia.fixture";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
@@ -7,7 +7,7 @@ import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-v
 const testPrefix = "Terminal-";
 
 test.describe("Theia IDE Terminal Tests", () => {
-  serializeOnSession("rust");
+  sessionForSpecs("rust");
   test.describe.configure({ mode: "serial" });
 
   test.use({

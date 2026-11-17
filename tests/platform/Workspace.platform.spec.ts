@@ -6,8 +6,15 @@ import {
   LaunchedIde,
   runInTerminal,
 } from "../../fixtures/utils/launch";
-import { recordMetric } from "../../fixtures/utils/metrics";
-import { CloudConfig, CloudService } from "../../fixtures/utils/service";
+import { Held } from "../../fixtures/utils/locks";
+import { CloudConfig } from "../../fixtures/utils/service";
+import {
+  PLATFORM_SLOTS,
+  Started,
+  acquire,
+  release,
+  startSession,
+} from "../../fixtures/utils/sessions";
 import { LandingPage } from "../../pages/landing/LandingPage";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWelcomeView } from "../../pages/ide/theia-pom/theia-welcome-view";
@@ -26,7 +33,8 @@ test.describe("Saved workspace", () => {
   test.use({ permissions: ["clipboard-write", "clipboard-read"] });
 
   let launched: LaunchedIde;
-  let service: CloudService;
+  let started: Started | undefined;
+  let held: Held[] = [];
   let cfg: CloudConfig;
 
   test.beforeAll(async ({ browser }, testInfo) => {
@@ -34,19 +42,18 @@ test.describe("Saved workspace", () => {
     await page.goto("/");
     cfg = await new LandingPage(page).config();
     await page.close();
-    service = await CloudService.connect(
-      browser,
-      cfg,
-      process.env.LANDINGPAGE_URL!,
-    );
-    launched = await launchIde(browser, spec, testInfo);
+    held = await acquire("platform-state", "platform", PLATFORM_SLOTS);
+    started = await startSession(browser, spec, testInfo, { keepOpen: true });
+    launched = started;
   });
 
   test.afterAll(async () => {
-    await launched?.page.context().close();
-    if (service) {
-      await service.stopTemplate(spec);
-      await service.dispose();
+    try {
+      await launched?.page.context().close();
+      if (started?.owned) await started.service.stopTemplate(spec);
+    } finally {
+      release(held);
+      held = [];
     }
   });
 
@@ -134,26 +141,15 @@ test.describe("Saved workspace", () => {
     await runInTerminal(terminal, `echo ${marker} > e2e-persist.txt && sync`);
     await launched.page.context().close();
 
-    await service.stopTemplate(spec);
+    await started!.service.stopTemplate(spec);
     // Starting while the old session still counts as running is refused.
     await expect
-      .poll(
-        async () =>
-          (await service.listSessions()).filter(
-            (s) => s.appDefinition === spec.app,
-          ).length,
-        {
-          timeout: 3 * 60_000,
-        },
-      )
+      .poll(async () => (await started!.service.sessionsOf(spec)).length, {
+        timeout: 3 * 60_000,
+      })
       .toBe(0);
 
     launched = await launchIde(browser, spec, testInfo, "restart");
-    recordMetric(testInfo, {
-      name: "restart-total",
-      ...spec,
-      ms: launched.launchMs,
-    });
     const after = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     const { output } = await runInTerminal(after, "cat e2e-persist.txt");
     expect(output).toContain(marker);
