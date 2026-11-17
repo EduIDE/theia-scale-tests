@@ -18,7 +18,6 @@ import {
 } from "../../../pages/ide/theia-pom/theia-preference-view";
 import { loremIpsum100 } from "../../../fixtures/utils/example-texts/lorem-ipsum";
 import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-view";
-import { IDEPage } from "../../../pages/ide/IDEPage";
 
 const bubbleSortTemplatePath = path.resolve(
   process.cwd(),
@@ -176,7 +175,7 @@ export async function createNewRandomFile(theiaApp: TheiaApp) {
     `src/de/BubbleSort.java`,
     TheiaTextEditor,
   );
-  const explorer = await theiaApp.openView(TheiaExplorerView);
+  await theiaApp.openView(TheiaExplorerView);
   await (await theiaApp.menuBar.openMenu("File")).clickMenuItem("New File...");
   const quickPick = theiaApp.page.getByPlaceholder("Select File Type or Enter");
   await sleep(1000);

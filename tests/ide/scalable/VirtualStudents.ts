@@ -45,7 +45,11 @@ const deterministic: boolean = process.env.DETERMINISTIC
  * This function is used to simulate a virtual student in the IDE for the load tests.
  * @param page The page expects Theia to be loaded and the user to be logged in
  */
-export async function virtualStudent(page: Page, test: any) {
+// Playwright's test and Artillery's test both pass a step(name, fn) helper.
+export async function virtualStudent(
+  page: Page,
+  test: { step: (name: string, fn: () => Promise<unknown>) => Promise<unknown> },
+) {
   const { step } = test;
   console.log("Starting virtual student");
 

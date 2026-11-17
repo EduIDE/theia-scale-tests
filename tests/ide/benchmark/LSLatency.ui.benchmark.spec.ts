@@ -8,7 +8,6 @@ import { TheiaOutputView } from "../../../pages/ide/theia-pom/theia-output-view"
 import { TheiaProblemIndicator } from "../../../pages/ide/theia-pom/theia-problem-indicator";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWorkspace } from "../../../pages/ide/theia-pom/theia-workspace";
-import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
 import { debugLog } from "../../../fixtures/utils/debug-logging";
 import { ensureMinimalJavaProjectViaTerminal } from "../../../fixtures/utils/benchmark-java-project";
 import {
@@ -830,74 +829,6 @@ async function ensureScenarioFilesViaTerminal(
   }
 }
 
-async function openWorkspaceFile(
-  page: import("@playwright/test").Page,
-  theiaApp: TheiaApp,
-  filePath: string,
-  debugStepDelayMs = 0,
-  fileOpenTimeoutMs = 30000,
-  pauseAfterFileOpenMs = 0,
-): Promise<void> {
-  debugLog("benchmark", "explorer open: open explorer start", { filePath });
-  const explorer = await theiaApp.openView(TheiaExplorerView);
-  debugLog("benchmark", "explorer open: open explorer done", { filePath });
-  await debugStepPause(page, debugStepDelayMs, "explorer opened");
-  debugLog("benchmark", "explorer open: refresh start", { filePath });
-  await explorer.refresh();
-  debugLog("benchmark", "explorer open: refresh done", { filePath });
-  await debugStepPause(page, debugStepDelayMs, "explorer refreshed");
-
-  const folderPath = path.dirname(filePath);
-  const nodeId = workspaceNodeId(filePath);
-  const fileNode = page.locator(`[id="${nodeId}"]`).first();
-
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    if (folderPath && folderPath !== ".") {
-      await expandFolderPathSegments(page, folderPath, debugStepDelayMs);
-    }
-
-    debugLog("benchmark", "explorer open: wait node start", {
-      nodeId,
-      attempt,
-    });
-    try {
-      await fileNode.waitFor({ state: "visible", timeout: Math.ceil(fileOpenTimeoutMs / 2) });
-      debugLog("benchmark", "explorer open: wait node done", { nodeId, attempt });
-      break;
-    } catch (error) {
-      if (attempt === 2) {
-        throw error;
-      }
-      debugLog("benchmark", "explorer open: wait node retry", {
-        nodeId,
-        attempt,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await explorer.refresh();
-      await debugStepPause(page, debugStepDelayMs, "explorer refreshed for retry");
-    }
-  }
-
-  await debugStepPause(page, debugStepDelayMs, "file node visible");
-  debugLog("benchmark", "explorer open: dblclick start", { nodeId });
-  await fileNode.dblclick();
-  debugLog("benchmark", "explorer open: dblclick done", { nodeId });
-  await debugStepPause(page, debugStepDelayMs, "file node opened");
-
-  const editor = page
-    .locator(`.monaco-editor[data-uri="file:///home/project/${filePath}"]`)
-    .first();
-  debugLog("benchmark", "explorer open: wait editor start", { filePath });
-  await editor.waitFor({ state: "visible", timeout: fileOpenTimeoutMs });
-  debugLog("benchmark", "explorer open: wait editor done", { filePath });
-  await debugStepPause(page, debugStepDelayMs, "editor visible");
-  debugLog("benchmark", "explorer open: editor click start", { filePath });
-  await editor.click();
-  debugLog("benchmark", "explorer open: editor click done", { filePath });
-  await debugStepPause(page, debugStepDelayMs, "editor focused");
-  await debugStepPause(page, pauseAfterFileOpenMs, "pause after file open");
-}
-
 async function createAndFocusWorkspaceFileViaMenu(
   page: import("@playwright/test").Page,
   theiaApp: TheiaApp,
@@ -950,66 +881,7 @@ async function createAndFocusWorkspaceFileViaMenu(
 }
 
 function shellQuote(value: string): string {
-  return `'${value.replace(/'/g, `'\"'\"'`)}'`;
-}
-
-function workspaceNodeId(filePath: string): string {
-  return `/home/project:/home/project/${filePath}`;
-}
-
-async function expandFolderPathSegments(
-  page: import("@playwright/test").Page,
-  folderPath: string,
-  debugStepDelayMs: number,
-): Promise<void> {
-  const segments = folderPath.split("/").filter(Boolean);
-  let currentPath = "";
-
-  for (const segment of segments) {
-    currentPath = currentPath ? `${currentPath}/${segment}` : segment;
-    await expandFolderIfVisible(page, currentPath, debugStepDelayMs);
-  }
-}
-
-async function expandFolderIfVisible(
-  page: import("@playwright/test").Page,
-  folderPath: string,
-  debugStepDelayMs: number,
-): Promise<void> {
-  const folderNodeId = workspaceNodeId(folderPath);
-  const folderSegment = page.locator(`[id="${folderNodeId}"]`).first();
-  if (!(await folderSegment.isVisible().catch(() => false))) {
-    debugLog("benchmark", "explorer open: folder segment not visible", {
-      folderPath,
-      folderNodeId,
-    });
-    return;
-  }
-
-  const folderRow = folderSegment.locator("xpath=ancestor::div[contains(@class,'theia-TreeNode')][1]");
-  const toggle = folderRow.locator(".theia-ExpansionToggle").first();
-  if (!(await toggle.isVisible().catch(() => false))) {
-    debugLog("benchmark", "explorer open: folder toggle not visible", {
-      folderPath,
-    });
-    return;
-  }
-
-  const toggleClasses = (await toggle.getAttribute("class")) || "";
-  const isCollapsed = toggleClasses.includes("theia-mod-collapsed");
-  debugLog("benchmark", "explorer open: folder toggle state", {
-    folderPath,
-    isCollapsed,
-    toggleClasses,
-  });
-  if (!isCollapsed) {
-    return;
-  }
-
-  debugLog("benchmark", "explorer open: folder expand start", { folderPath });
-  await toggle.click();
-  debugLog("benchmark", "explorer open: folder expand done", { folderPath });
-  await debugStepPause(page, debugStepDelayMs, `folder expanded: ${folderPath}`);
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
 async function debugStepPause(
@@ -1102,7 +974,7 @@ async function waitForHoverWithTimeout(
 
   const hoverVisibleLatencyMs = Date.now() - startedAt;
   let hoverText = (await hover.textContent().catch(() => "")) || "";
-  let loadingSeen = loadingPattern.test(hoverText);
+  const loadingSeen = loadingPattern.test(hoverText);
   let resolvedHoverLatencyMs: number | null = loadingSeen ? null : hoverVisibleLatencyMs;
 
   if (loadingSeen) {

@@ -34,7 +34,7 @@ async commit(message: string): Promise<void> {
       { timeout: 5000 }
     );
     await commitDialog.press("Enter");
-  } catch (e) {
+  } catch {
     console.log("Nothing to commit skipping.");
   }
 }
