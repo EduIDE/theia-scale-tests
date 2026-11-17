@@ -65,7 +65,17 @@ export class TheiaTerminal extends TheiaView {
   protected async waitForVisibleView(): Promise<
     ElementHandle<SVGElement | HTMLElement>
   > {
-    return this.page.waitForSelector(this.viewSelector, { state: "visible" });
+    try {
+      return await this.page.waitForSelector(this.viewSelector, {
+        state: "visible",
+        timeout: 10_000,
+      });
+    } catch {
+      // The tab can count as current while its panel stays hidden, for example
+      // when another view took the bottom panel at the same moment.
+      await this.page.locator(this.tabSelector).click();
+      return this.page.waitForSelector(this.viewSelector, { state: "visible" });
+    }
   }
 }
 

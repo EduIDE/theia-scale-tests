@@ -1,27 +1,23 @@
-import "dotenv";
 import fs from "fs";
-import path from "path";
+import {
+  ARTEMIS_SESSION_FILE,
+  LOGOUT_SESSION_FILE,
+  SESSION_FILE,
+} from "./auth-files";
 
 /**
  * Global teardown for Playwright tests.
- * Deletes the auth file after the tests are run.
+ * Deletes the stored logins after the tests are run.
  */
 async function globalTeardown() {
   console.log("Running global teardown...");
 
-  const keycloakAuthFilePath = path.resolve(
-    __dirname,
-    "../.auth/keycloak_user.json",
-  );
-  const artemisAuthFilePath = path.resolve(
-    __dirname,
-    "../.auth/artemis_user.json",
-  );
-  if (fs.existsSync(keycloakAuthFilePath)) {
-    fs.unlinkSync(keycloakAuthFilePath);
-  }
-  if (fs.existsSync(artemisAuthFilePath)) {
-    fs.unlinkSync(artemisAuthFilePath);
+  for (const file of [
+    SESSION_FILE,
+    LOGOUT_SESSION_FILE,
+    ARTEMIS_SESSION_FILE,
+  ]) {
+    fs.rmSync(file, { force: true });
   }
 
   console.log("Global teardown completed.");

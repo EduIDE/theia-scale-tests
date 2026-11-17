@@ -18,3 +18,4 @@ playwright.env
 /user-data/
 
 *.DS_Store
+/ci-summary/

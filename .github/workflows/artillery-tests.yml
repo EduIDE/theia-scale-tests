@@ -1,31 +1,50 @@
 name: Artillery Load Test
 
+# Manual only: it opens real IDE sessions on a shared environment.
 on:
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Landing page hostname to test
+        type: string
+        required: true
+        default: e2e.eduide.student.k8s.aet.cit.tum.de
+      num_instances:
+        description: Number of virtual users
+        type: string
+        default: "5"
+
+permissions:
+  contents: read
+
+# One run per environment at a time: all runs share the test user and its
+# per-user session limit.
+concurrency:
+  group: eduide-https://${{ inputs.environment }}
+  cancel-in-progress: false
 
 jobs:
   artillery:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    # Browsers come preinstalled, and their version is the one in package.json:
+    # artillery's own Playwright is pinned to it with `overrides`.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --ipc=host
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
+      LANDINGPAGE_URL: https://${{ inputs.environment }}
+      NUM_INSTANCES: ${{ inputs.num_instances }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install dependencies
+        timeout-minutes: 10
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
-      # --with-deps runs apt-get update, which fails the whole job when
-      # packages.microsoft.com returns 403 - it has nothing we need, and the
-      # hosted runner image already carries the Playwright system libraries.
-      - name: Drop unreachable apt sources
-        run: sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.list
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
       # artilleryio/action-cli@v1 runs a container whose entrypoint no longer
       # resolves (`/home/node/artillery/bin/run: not found`), so the step fails
       # regardless of the test. artillery is already a devDependency here, so

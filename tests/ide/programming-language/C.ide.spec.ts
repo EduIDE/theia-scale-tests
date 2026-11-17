@@ -1,4 +1,9 @@
 import { expect, test } from "../../../fixtures/theia.fixture";
+import {
+  sessionAfterSpecs,
+  sessionForSpecs,
+} from "../../../fixtures/utils/sessions";
+import { TEST_FILE_CLEANUP } from "../../../pages/ide/IDEPage";
 import { TheiaTerminal } from "../../../pages/ide/theia-pom/theia-terminal";
 import { TheiaTextEditor } from "../../../pages/ide/theia-pom/theia-text-editor";
 import { readFileSync } from "fs";
@@ -9,6 +14,7 @@ import { pasteFromString } from "../../../fixtures/utils/commands";
 const testPrefix = "C-";
 
 test.describe("C Language Test", () => {
+  sessionForSpecs("c");
   test.describe.configure({ mode: "serial" });
 
   test.use({
@@ -78,5 +84,7 @@ test.describe("C Language Test", () => {
     await cApp.openWorkspace("");
     const terminal = await cApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
+    await terminal.submit(TEST_FILE_CLEANUP);
   });
+  sessionAfterSpecs("c");
 });

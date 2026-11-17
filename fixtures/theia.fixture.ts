@@ -1,22 +1,40 @@
-import { test as base } from "@playwright/test";
+import { Browser, test as base } from "@playwright/test";
 import { TheiaApp } from "../pages/ide/theia-pom/theia-app";
 import { TheiaWorkspace } from "../pages/ide/theia-pom/theia-workspace";
 import { IDEPage } from "../pages/ide/IDEPage";
 import { ArtemisPage } from "../pages/artemis/ArtemisPage";
 import { LandingPage } from "../pages/landing/LandingPage";
-import fs from "fs";
-import path from "path";
+import { BASE_TEMPLATES } from "./utils/catalog";
+import { localUrl, sessionUrls } from "./utils/sessions";
 
 interface TheiaFixtures {
   landingPage: LandingPage;
   cApp: IDEPage;
   javaApp: IDEPage;
   pythonApp: IDEPage;
-  ocamlApp: IDEPage;
   rustApp: IDEPage;
   jsApp: IDEPage;
   artemis: ArtemisPage;
   artemisTheia: IDEPage;
+}
+
+/** Opens the IDE of a base template, which the spec's session hook launched. */
+export async function openBaseIde(browser: Browser, key: string) {
+  const ideURL = localUrl(key) ?? sessionUrls[key];
+  if (!ideURL) {
+    throw new Error(
+      `No session for "${key}": call sessionForSpecs("${key}") in the spec`,
+    );
+  }
+  const page = await browser.newPage();
+  const workspace = new TheiaWorkspace();
+  workspace.setPath("/home/project");
+  const theiaApp = new TheiaApp(page, workspace, false);
+  const idePage = new IDEPage(page, theiaApp, ideURL);
+  idePage.label = BASE_TEMPLATES[key].app;
+  await page.goto(ideURL);
+  await theiaApp.waitForShellAndInitialized();
+  return idePage;
 }
 
 export const test = base.extend<TheiaFixtures>({
@@ -30,112 +48,29 @@ export const test = base.extend<TheiaFixtures>({
     await page.close();
   },
   cApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-c.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const idePage = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(idePage);
-    await page.close();
+    const ide = await openBaseIde(browser, "c");
+    await use(ide);
+    await ide.page.close();
   },
   javaApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-java-17.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const javaApp = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(javaApp);
-    await page.close();
+    const ide = await openBaseIde(browser, "java");
+    await use(ide);
+    await ide.page.close();
   },
   pythonApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-python.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const pythonApp = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(pythonApp);
-    await page.close();
-  },
-  ocamlApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-ocaml.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const ocamlApp = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(ocamlApp);
-    await page.close();
+    const ide = await openBaseIde(browser, "python");
+    await use(ide);
+    await ide.page.close();
   },
   rustApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-rust.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const rustApp = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(rustApp);
-    await page.close();
+    const ide = await openBaseIde(browser, "rust");
+    await use(ide);
+    await ide.page.close();
   },
   jsApp: async ({ browser }, use) => {
-    const urlPath = path.join(
-      process.cwd(),
-      "test-data/functional",
-      "ide-url-javascript.txt",
-    );
-    const ideURL = fs.readFileSync(urlPath, "utf8");
-    const page = await browser.newPage();
-    const workspace = new TheiaWorkspace();
-    workspace.setPath("/home/project");
-    const theiaApp = new TheiaApp(page, workspace, false);
-    const jsApp = new IDEPage(page, theiaApp, ideURL);
-    await page.goto(ideURL);
-    await theiaApp.waitForShellAndInitialized();
-
-    await use(jsApp);
-    await page.close();
+    const ide = await openBaseIde(browser, "javascript");
+    await use(ide);
+    await ide.page.close();
   },
   artemis: async ({ browser }, use) => {
     const artemisURL = process.env.ARTEMIS_URL!;

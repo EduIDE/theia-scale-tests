@@ -1,6 +1,15 @@
-import { Page, expect } from "@playwright/test";
+import { Page, expect, test } from "@playwright/test";
 import { TheiaApp } from "./theia-pom/theia-app";
+import { TheiaExplorerView } from "./theia-pom/theia-explorer-view";
 import { TheiaTerminal } from "./theia-pom/theia-terminal";
+
+/**
+ * What the specs leave behind in the workspace. The IDE does not always open
+ * the folder a spec asked for, so files can land in the project root of a Saved
+ * workspace, where the next run would find them.
+ */
+export const TEST_FILE_CLEANUP =
+  "rm -rf Editor-* Search-* Terminal-* VSC-* LoopExample* C-Test* __pycache__ *-test";
 
 /**
  * Main IDE page class that composes all IDE components
@@ -10,6 +19,10 @@ export class IDEPage {
   page: Page;
   readonly theiaApp: TheiaApp;
   readonly baseURL: string;
+  /** App name for reports, set by the fixture that opened this IDE. */
+  label = "";
+  private readyAt = 0;
+  private makefilePromptSeen = false;
 
   constructor(page: Page, app: TheiaApp, baseURL: string) {
     this.page = page;
@@ -29,8 +42,29 @@ export class IDEPage {
    * Wait for all essential IDE components to be ready
    */
   async waitForReady(): Promise<void> {
-    await this.page.locator(".gs-header").waitFor({ state: "visible" });
+    // The Welcome page is not always open, so the shell is the signal.
+    await this.theiaApp.waitForShellAndInitialized();
+    this.makefilePromptSeen = await this.dismissMakefileToolsPrompt();
+    this.readyAt = Date.now();
     await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+
+  /**
+   * With a Makefile in the workspace the Makefile Tools extension asks whether
+   * to configure the project, and the file creation that follows goes wrong
+   * while the question is open.
+   */
+  async dismissMakefileToolsPrompt(waitMs = 8000): Promise<boolean> {
+    const yes = this.page
+      .getByRole("button", { name: "Yes (don't show again)" })
+      .first();
+    try {
+      await yes.waitFor({ state: "visible", timeout: waitMs });
+      await yes.click();
+      return true;
+    } catch {
+      return false; // No prompt, nothing to dismiss.
+    }
   }
 
   /**
@@ -38,6 +72,39 @@ export class IDEPage {
    * @param fileName Name of the file to create
    */
   async createNewFile(fileName: string = "Test-1"): Promise<void> {
+    const promptJustSeen = await this.dismissMakefileToolsPrompt(500);
+    await this.createNewFileOnce(fileName);
+    // Right after a reload the first creation is sometimes lost without an
+    // error, so a file that does not show up in the explorer is created once more.
+    if (fileName.includes("/")) return;
+    for (let attempt = 0; ; attempt++) {
+      await this.theiaApp.openView(TheiaExplorerView);
+      const shown = await this.page
+        .locator(".theia-TreeNodeSegmentGrow")
+        .getByText(fileName, { exact: true })
+        .first()
+        .waitFor({ state: "visible", timeout: 10_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (shown) return;
+      if (attempt >= 1) {
+        throw new Error(
+          `New file "${fileName}" did not show up after two attempts`,
+        );
+      }
+      // Not hidden: a lost first "New File" is something a student would see.
+      test.info().annotations.push({
+        type: "recovered",
+        description:
+          `recovered: file creation lost on first attempt (${this.label || "unknown app"}, ${fileName}) ` +
+          `[makefile prompt seen at ready: ${this.makefilePromptSeen}, dismissed now: ${promptJustSeen}, ` +
+          `ms since IDE ready: ${this.readyAt ? Date.now() - this.readyAt : "n/a"}]`,
+      });
+      await this.createNewFileOnce(fileName);
+    }
+  }
+
+  private async createNewFileOnce(fileName: string): Promise<void> {
     await (
       await this.theiaApp.menuBar.openMenu("File")
     ).clickMenuItem("New File...");
@@ -80,6 +147,7 @@ export class IDEPage {
     await this.waitForReady();
 
     const terminal = await this.theiaApp.openTerminal(TheiaTerminal);
+    await terminal.submit(TEST_FILE_CLEANUP);
     await terminal.submit(`mkdir ${workspacePath}`);
     await this.page.goto(this.getWorkspaceURL(workspacePath));
     await this.reloadUntilReady();
@@ -124,8 +192,10 @@ export class IDEPage {
       try {
         await Promise.race([
           this.waitForReady(),
-          this.page.waitForTimeout(10_000).then(() => { throw new Error("timeout"); })
-        ]);        
+          this.page.waitForTimeout(60_000).then(() => {
+            throw new Error("timeout");
+          }),
+        ]);
         return;
       } catch (_) {}
     }

@@ -1,9 +1,23 @@
 name: Functional Theia Tests
+# Contract with EduIDE-deployment (runs this after every e2e deploy), keep it
+# stable: workflow_call input `environment` (landing page hostname), optional
+# input `artemis_url`, secrets KEYCLOAK_USER, KEYCLOAK_PWD and optional
+# ARTEMIS_USER, ARTEMIS_PWD.
 on:
   push:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  # Manual run against any environment: type its landing page hostname.
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: string
+        required: true
+        default: e2e.eduide.student.k8s.aet.cit.tum.de
+        description: >-
+          Landing page hostname to test, for example
+          e2e.eduide.student.k8s.aet.cit.tum.de.
   # EduIDE-deployment calls this after it has deployed an environment, so the
   # suite runs against the rollout that just went green rather than against
   # whatever the repository variable happens to point at.
@@ -38,6 +52,15 @@ on:
         required: false
       ARTEMIS_PWD:
         required: false
+permissions:
+  contents: read
+
+# One run per environment at a time: all runs share the test user and its
+# per-user session limit.
+concurrency:
+  group: eduide-${{ inputs.environment && format('https://{0}', inputs.environment) || vars.LANDINGPAGE_URL }}
+  cancel-in-progress: false
+
 jobs:
   test:
     timeout-minutes: 60
@@ -50,7 +73,13 @@ jobs:
     # The environments under test are reachable from the public internet - Let's
     # Encrypt validates their certificates over HTTP-01 - so a hosted runner
     # reaches them and needs no cluster access.
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moved to 26.04, which this Playwright cannot install a browser on.
+    runs-on: ubuntu-24.04
+    # Browsers come preinstalled, the download from the runner stalled. Keep the
+    # tag equal to @playwright/test in package-lock.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --ipc=host
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
@@ -72,22 +101,50 @@ jobs:
       # inputs.environment is only set when we are called, so direct push and
       # pull_request runs keep checking out github.repository at github.sha
       # exactly as before.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           repository: ${{ inputs.environment && job.workflow_repository || github.repository }}
           ref: ${{ inputs.environment && job.workflow_sha || github.sha }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - name: Install dependencies
+        timeout-minutes: 10
+        # artillery pulls in @playwright/browser-chromium, whose install hook
+        # downloads a browser; the container image already has one.
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+      - name: Unit tests
+        run: npm run test:unit
       - name: Run Playwright tests
-        run: npx playwright test --project=functional --workers=10
-      - uses: actions/upload-artifact@v4
+        # A hang must end here, with the summary and report still uploaded
+        # afterwards, not eat the whole job.
+        timeout-minutes: 35
+        run: npx playwright test --project=functional --project=platform --workers=6
+      # Rendered on the run page, and for a call from another repository on
+      # the caller's run page. Also runs when the tests failed.
+      - name: Summary
+        if: always()
+        run: node scripts/ci-summary.mjs
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ci-summary
+          path: ci-summary/
+          retention-days: 30
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
-          path: playwright-report/
+          path: |
+            playwright-report/
+            test-data/metrics/
           retention-days: 30
+      # error-context.md, screenshots and traces of failed tests
+      - uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7

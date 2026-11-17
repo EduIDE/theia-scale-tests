@@ -13,9 +13,20 @@ import { debugLog } from "../../fixtures/utils/debug-logging";
  * @tag slow (starting the instance takes a while)
  * @description This function automates the starting process for the LandingPage UI.
  */
-const instances = process.env.NUM_INSTANCES
-  ? parseInt(process.env.NUM_INSTANCES)
-  : 1;
+const instances = Number.parseInt(process.env.NUM_INSTANCES ?? "", 10);
+// Array.from({ length: NaN }) starts nothing and the suite would pass untested.
+if (!Number.isInteger(instances) || instances < 1) {
+  throw new Error(
+    `NUM_INSTANCES must be a positive integer, got ${JSON.stringify(process.env.NUM_INSTANCES)}.`,
+  );
+}
+// The service refuses more than sessionsPerUser (10 on e2e) sessions for one
+// user, and every instance here is a session of the same account.
+if (instances > 10) {
+  throw new Error(
+    `NUM_INSTANCES is ${instances}, but one user may hold at most 10 sessions.`,
+  );
+}
 const setupTimeoutMs = process.env.BENCH_SETUP_TIMEOUT_MS
   ? parseInt(process.env.BENCH_SETUP_TIMEOUT_MS, 10)
   : 420000;
@@ -23,7 +34,7 @@ const setupTimeoutMs = process.env.BENCH_SETUP_TIMEOUT_MS
 //TODO: Remove skip
 setup("Start " + instances + " instances", async ({}, testInfo) => {
   setup.slow();
-  const benchTargetApp = process.env.BENCH_TARGET_APP || "java-17-no-ls";
+  const benchTargetApp = process.env.BENCH_TARGET_APP || "java-17-standalone";
   debugLog("scale-setup", "start setup", {
     instances,
     benchTargetApp,
@@ -70,7 +81,7 @@ async function setupIDE(
     });
     await page.goto("/");
     debugLog("scale-setup", "landing opened", { identifier, url: page.url() });
-    await landingPage.launchLanguage(language);
+    await landingPage.launch(language, process.env.BENCH_TARGET_TEMPLATE);
     debugLog("scale-setup", "waiting for ide url", {
       identifier,
       pattern: ".*#/home/project",

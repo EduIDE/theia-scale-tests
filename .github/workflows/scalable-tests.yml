@@ -1,14 +1,33 @@
 name: Scalable Theia Tests
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Landing page hostname to test
+        type: string
+        required: true
+        default: e2e.eduide.student.k8s.aet.cit.tum.de
+permissions:
+  contents: read
+
+# One run per environment at a time: all runs share the test user and its
+# per-user session limit.
+concurrency:
+  group: eduide-https://${{ inputs.environment }}
+  cancel-in-progress: false
+
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: [self-hosted, e2e-test]
+    runs-on: ubuntu-24.04
+    # Browsers come preinstalled, the version is the one in package.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.65.1-noble
+      options: --ipc=host
     env:
       KEYCLOAK_USER: ${{ secrets.KEYCLOAK_USER }}
       KEYCLOAK_PWD: ${{ secrets.KEYCLOAK_PWD }}
-      LANDINGPAGE_URL: ${{ vars.LANDINGPAGE_URL }}
+      LANDINGPAGE_URL: https://${{ inputs.environment }}
       ARTEMIS_URL: ${{ vars.ARTEMIS_URL }}
       ARTEMIS_USER: ${{ secrets.ARTEMIS_USER }}
       ARTEMIS_PWD: ${{ secrets.ARTEMIS_PWD }}
@@ -16,17 +35,18 @@ jobs:
       LOAD_TIMEOUT: ${{ vars.LOAD_TIMEOUT }}
       DETERMINISTIC: 1
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
       - name: Install dependencies
+        timeout-minutes: 10
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
       - name: Run Playwright tests
         run: npx playwright test --project=scale
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

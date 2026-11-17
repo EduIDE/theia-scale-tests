@@ -173,9 +173,20 @@ export class TheiaExplorerView extends TheiaView {
       fragmentsSoFar += fragment;
 
       const selector = this.treeNodeSelector(fragmentsSoFar);
-      const nextTreeNode = await viewElement?.waitForSelector(selector, {
-        state: "visible",
-      });
+      const nextTreeNode = await viewElement
+        ?.waitForSelector(selector, { state: "visible" })
+        .catch(async (e) => {
+          // Say what the explorer showed, so a flaky miss can be told from a missing file.
+          const shown = await viewElement
+            .$$eval(".theia-TreeNodeSegmentGrow", (els) =>
+              els.slice(0, 15).map((el) => el.textContent),
+            )
+            .catch(() => []);
+          throw new Error(
+            `Explorer node "${fragment}" not found, explorer shows ${JSON.stringify(shown)}`,
+            { cause: e },
+          );
+        });
       if (!nextTreeNode) {
         throw new Error(`Tree node '${selector}' not found in explorer`);
       }
@@ -259,17 +270,15 @@ export class TheiaExplorerView extends TheiaView {
     return elementContainsClass(treeNode, "theia-mod-selected");
   }
 
+  /**
+   * Matches the node by its label. The node ids of the stock page object
+   * (workspace path, colon, file path) do not match what the Theia of EduIDE 3.0
+   * renders, so only the last path segment is used. Segments are expanded one
+   * after the other, which keeps the match unique in practice.
+   */
   protected treeNodeSelector(filePath: string): string {
-    return `.theia-FileStatNode:has(#${normalizeId(this.treeNodeId(filePath))})`;
-  }
-
-  protected treeNodeId(filePath: string): string {
-    const workspacePath = this.app.workspace.path;
-    const nodeId = `${workspacePath}:${workspacePath}${OSUtil.fileSeparator}${filePath}`;
-    if (OSUtil.isWindows) {
-      return urlEncodePath(nodeId);
-    }
-    return nodeId;
+    const label = filePath.split("/").pop()!;
+    return `.theia-FileStatNode:has(.theia-TreeNodeSegmentGrow:text-is("${label}"))`;
   }
 
   async clickContextMenuItem(

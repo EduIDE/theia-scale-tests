@@ -15,28 +15,22 @@
 // *****************************************************************************
 
 import { ElementHandle, Locator } from "@playwright/test";
-import { join } from "path";
 
 import { TheiaApp } from "./theia-app";
 import { TheiaEditor } from "./theia-editor";
-import { normalizeId, OSUtil, urlEncodePath } from "./util";
 import { TheiaMonacoEditor } from "./theia-monaco-editor";
 
 export class TheiaTextEditor extends TheiaEditor {
   protected monacoEditor: TheiaMonacoEditor;
 
   constructor(filePath: string, app: TheiaApp) {
-    // shell-tab-code-editor-opener:file:///c%3A/Users/user/AppData/Local/Temp/cloud-ws-JBUhb6/sample.txt:1
-    // code-editor-opener:file:///c%3A/Users/user/AppData/Local/Temp/cloud-ws-JBUhb6/sample.txt:1
+    // Matched by file name, not by path: which folder the IDE opened as its
+    // workspace varies, and the counter at the end of the id is not always :1.
+    const name = filePath.split("/").pop()!;
     super(
       {
-        tabSelector: normalizeId(
-          `#shell-tab-code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:1`,
-        ),
-        viewSelector:
-          normalizeId(
-            `#code-editor-opener:file://${urlEncodePath(join(app.workspace.escapedPath, OSUtil.fileSeparator, filePath))}:1`,
-          ) + ".theia-editor",
+        tabSelector: `[id^="shell-tab-code-editor-opener:file://"][id*="/${name}:"]`,
+        viewSelector: `[id^="code-editor-opener:file://"][id*="/${name}:"].theia-editor`,
       },
       app,
     );
@@ -44,6 +38,27 @@ export class TheiaTextEditor extends TheiaEditor {
       this.page.locator(this.data.viewSelector),
       app,
     );
+  }
+
+  /** Names what is in the page when the editor does not show, so the report says why. */
+  override async waitForVisible(): Promise<void> {
+    try {
+      await super.waitForVisible();
+    } catch (e) {
+      const found = await this.page
+        .locator('[id*="code-editor-opener"]')
+        .evaluateAll((els) =>
+          els.slice(0, 4).map((el) => {
+            const r = el.getBoundingClientRect();
+            return `${el.id.split("/").slice(-1)[0]} class="${el.className.toString().slice(0, 60)}" ${r.width}x${r.height}`;
+          }),
+        )
+        .catch(() => []);
+      throw new Error(
+        `Editor ${this.viewSelector} not visible, page has: ${JSON.stringify(found)}`,
+        { cause: e },
+      );
+    }
   }
 
   async numberOfLines(): Promise<number | undefined> {

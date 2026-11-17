@@ -102,7 +102,7 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   const warmProbeCount = process.env.BENCH_PROBES
     ? parseInt(process.env.BENCH_PROBES, 10)
     : 20;
-  const targetApp = process.env.BENCH_TARGET_APP || "java-17-no-ls";
+  const targetApp = process.env.BENCH_TARGET_APP || "java-17-standalone";
   const runId = process.env.BENCH_RUN_ID || `${architecture}-${mode}-run-${run}`;
   const scenarioDefinition = buildScenarioDefinition(
     scenario,
@@ -131,7 +131,7 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   await page.goto("/");
   const landingPage = new LandingPage(page);
   const startupStartedAt = Date.now();
-  await landingPage.launchLanguage(targetApp);
+  await landingPage.launch(targetApp, process.env.BENCH_TARGET_TEMPLATE);
   await page.waitForURL(/.*#\/home\/project/, { timeout: setupTimeoutMs });
 
   const workspace = new TheiaWorkspace();
