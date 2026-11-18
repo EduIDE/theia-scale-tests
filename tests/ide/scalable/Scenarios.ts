@@ -171,17 +171,13 @@ export async function commit(theiaApp: TheiaApp) {
  * @param theiaApp The TheiaApp instance
  */
 export async function createNewRandomFile(theiaApp: TheiaApp) {
-  await theiaApp.openEditor(
-    `src/de/BubbleSort.java`,
-    TheiaTextEditor,
-  );
+  await theiaApp.openEditor(`src/de/BubbleSort.java`, TheiaTextEditor);
   await theiaApp.openView(TheiaExplorerView);
   await (await theiaApp.menuBar.openMenu("File")).clickMenuItem("New File...");
   const quickPick = theiaApp.page.getByPlaceholder("Select File Type or Enter");
   await sleep(1000);
 
-  const fileName =
-    "RandomFile" + Math.random().toString(36).substring(2, 15);
+  const fileName = "RandomFile" + Math.random().toString(36).substring(2, 15);
   await quickPick.fill(fileName);
   await quickPick.press("Enter");
   await sleep(1000);
@@ -201,16 +197,12 @@ export async function createNewRandomFile(theiaApp: TheiaApp) {
  * @param theiaApp The TheiaApp instance
  */
 export async function createNewFile(theiaApp: TheiaApp, newFileName: string) {
-  await theiaApp.openEditor(
-    `src/de/BubbleSort.java`,
-    TheiaTextEditor,
-  );
+  await theiaApp.openEditor(`src/de/BubbleSort.java`, TheiaTextEditor);
   await (await theiaApp.menuBar.openMenu("File")).clickMenuItem("New File...");
   const quickPick = theiaApp.page.getByPlaceholder("Select File Type or Enter");
   await sleep(1000);
 
-  const fileName =
-    newFileName;
+  const fileName = newFileName;
   await quickPick.fill(fileName);
   await quickPick.press("Enter");
   await sleep(1000);

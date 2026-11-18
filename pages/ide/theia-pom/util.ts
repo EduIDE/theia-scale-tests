@@ -58,8 +58,7 @@ export async function textContent(
 
 export async function containsClass(
   elementPromise:
-    | Promise<ElementHandle<SVGElement | HTMLElement> | null>
-    | undefined,
+    Promise<ElementHandle<SVGElement | HTMLElement> | null> | undefined,
   cssClass: string,
 ): Promise<boolean> {
   return elementContainsClass(await elementPromise, cssClass);

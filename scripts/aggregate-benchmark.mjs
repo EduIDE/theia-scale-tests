@@ -23,16 +23,18 @@ function parseArgs(argv) {
       continue;
     }
     const key = token.slice(2);
-    const value = argv[index + 1] && !argv[index + 1].startsWith("--")
-      ? argv[++index]
-      : "true";
+    const value =
+      argv[index + 1] && !argv[index + 1].startsWith("--")
+        ? argv[++index]
+        : "true";
     args[key] = value;
   }
   return args;
 }
 
 const args = parseArgs(process.argv.slice(2));
-const outputDir = args["output-dir"] || process.env.BENCH_OUTPUT_DIR || "test-data/benchmark";
+const outputDir =
+  args["output-dir"] || process.env.BENCH_OUTPUT_DIR || "test-data/benchmark";
 const latencyFile = path.join(outputDir, "raw", "latency-raw.jsonl");
 const resourceFile = path.join(outputDir, "raw", "resource-raw.csv");
 
@@ -44,8 +46,14 @@ if (latencyRecords.length === 0) {
 
 const resourceRows = readResourceCsvFile(resourceFile);
 const completeRunKeys = collectCompleteLatencyRunKeys(latencyRecords);
-const completeLatencyRecords = filterLatencyRecordsToCompleteRuns(latencyRecords, completeRunKeys);
-const completeResourceRows = filterResourceRowsToCompleteRuns(resourceRows, completeRunKeys);
+const completeLatencyRecords = filterLatencyRecordsToCompleteRuns(
+  latencyRecords,
+  completeRunKeys,
+);
+const completeResourceRows = filterResourceRowsToCompleteRuns(
+  resourceRows,
+  completeRunKeys,
+);
 
 if (completeLatencyRecords.length === 0) {
   console.error(
@@ -66,8 +74,10 @@ const summary = {
     resourceFile,
   },
   completeRunCount: completeRunKeys.size,
-  excludedLatencyRecordCount: latencyRecords.length - completeLatencyRecords.length,
-  excludedResourceSampleCount: resourceRows.length - completeResourceRows.length,
+  excludedLatencyRecordCount:
+    latencyRecords.length - completeLatencyRecords.length,
+  excludedResourceSampleCount:
+    resourceRows.length - completeResourceRows.length,
   latencyGroups,
   resourceGroups,
   summaryRows,
@@ -79,7 +89,10 @@ writeTextFile(
 );
 writeTextFile(path.join(outputDir, "summary.csv"), toCsv(summaryRows));
 writeTextFile(path.join(outputDir, "latency-groups.csv"), toCsv(latencyGroups));
-writeTextFile(path.join(outputDir, "resource-groups.csv"), toCsv(resourceGroups));
+writeTextFile(
+  path.join(outputDir, "resource-groups.csv"),
+  toCsv(resourceGroups),
+);
 writeTextFile(
   path.join(outputDir, "reports", "compare-embedded-vs-extracted.md"),
   formatComparisonMarkdown(summaryRows),
@@ -93,9 +106,14 @@ if (resourceRows.length > 0) {
     `Aggregated ${completeResourceRows.length} resource samples from ${resourceFile}`,
   );
 } else {
-  console.log(`No resource samples found at ${resourceFile}; latency-only summary generated`);
+  console.log(
+    `No resource samples found at ${resourceFile}; latency-only summary generated`,
+  );
 }
-if (latencyRecords.length !== completeLatencyRecords.length || resourceRows.length !== completeResourceRows.length) {
+if (
+  latencyRecords.length !== completeLatencyRecords.length ||
+  resourceRows.length !== completeResourceRows.length
+) {
   console.log(
     `Excluded ${latencyRecords.length - completeLatencyRecords.length} latency records and ${resourceRows.length - completeResourceRows.length} resource samples from incomplete runs`,
   );

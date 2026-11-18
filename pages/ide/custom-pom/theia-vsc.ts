@@ -19,25 +19,25 @@ export class TheiaVSCView extends TheiaView {
     await viewElement?.waitForSelector(".theia-scm-main-container");
   }
 
-async commit(message: string): Promise<void> {
-  await this.page
-    .locator(".theia-scm-main-container .theia-scm-input-message")
-    .fill(message, { timeout: 120_000 });
-  const commitButton = this.page
-    .locator(".theia-sidepanel-toolbar .codicon-check")
-    .or(this.page.getByRole("button", { name: /Commit/ }))
-    .first();
-  await commitButton.click();
-  try {
-    const commitDialog = await this.page.waitForSelector(
-      'div[class="dialogBlock"]',
-      { timeout: 5000 }
-    );
-    await commitDialog.press("Enter");
-  } catch {
-    console.log("Nothing to commit skipping.");
+  async commit(message: string): Promise<void> {
+    await this.page
+      .locator(".theia-scm-main-container .theia-scm-input-message")
+      .fill(message, { timeout: 120_000 });
+    const commitButton = this.page
+      .locator(".theia-sidepanel-toolbar .codicon-check")
+      .or(this.page.getByRole("button", { name: /Commit/ }))
+      .first();
+    await commitButton.click();
+    try {
+      const commitDialog = await this.page.waitForSelector(
+        'div[class="dialogBlock"]',
+        { timeout: 5000 },
+      );
+      await commitDialog.press("Enter");
+    } catch {
+      console.log("Nothing to commit skipping.");
+    }
   }
-}
 
   async commitAllandPush(message: string): Promise<void> {
     await this.page

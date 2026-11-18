@@ -34,7 +34,7 @@ on:
       artemis_url:
         type: string
         required: false
-        default: ''
+        default: ""
         description: >-
           Artemis instance to integrate against, as a full URL, for example
           https://artemis.tum.de. Environments front different Artemis
@@ -81,7 +81,7 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
         run: npm ci
-      - name: ESLint
+      - name: ESLint and Prettier
         run: npm run lint
 
   test:

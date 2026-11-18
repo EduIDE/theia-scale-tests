@@ -64,8 +64,8 @@ export function parseMemoryMiB(rawValue) {
     ["Gi", 1024],
     ["Ti", 1024 * 1024],
     ["K", 1000 / 1024 / 1024],
-    ["M", 1000 * 1000 / 1024 / 1024],
-    ["G", 1000 * 1000 * 1000 / 1024 / 1024],
+    ["M", (1000 * 1000) / 1024 / 1024],
+    ["G", (1000 * 1000 * 1000) / 1024 / 1024],
   ];
   for (const [suffix, factor] of units) {
     if (rawValue.endsWith(suffix)) {
@@ -186,7 +186,9 @@ export function collectCompleteLatencyRunKeys(records) {
         if (run.timedOut) {
           return false;
         }
-        return requiredSignalsForMode(run.mode, run.scenario).every((signal) => run.signals.has(signal));
+        return requiredSignalsForMode(run.mode, run.scenario).every((signal) =>
+          run.signals.has(signal),
+        );
       })
       .map(([key]) => key),
   );
@@ -196,7 +198,9 @@ export function filterLatencyRecordsToCompleteRuns(records, completeRunKeys) {
   if (!completeRunKeys || completeRunKeys.size === 0) {
     return [];
   }
-  return records.filter((record) => completeRunKeys.has(stableLatencyRunKey(record)));
+  return records.filter((record) =>
+    completeRunKeys.has(stableLatencyRunKey(record)),
+  );
 }
 
 export function filterResourceRowsToCompleteRuns(rows, completeRunKeys) {
@@ -386,74 +390,76 @@ export function buildSummaryRows(latencyGroups, resourceGroups) {
   );
 
   const architectureModeScenarios = new Set([
-    ...latencyGroups.map((group) => `${group.architecture}|${group.mode}|${group.scenario}`),
-    ...resourceGroups.map((group) => `${group.architecture}|${group.mode}|${group.scenario}`),
+    ...latencyGroups.map(
+      (group) => `${group.architecture}|${group.mode}|${group.scenario}`,
+    ),
+    ...resourceGroups.map(
+      (group) => `${group.architecture}|${group.mode}|${group.scenario}`,
+    ),
   ]);
 
-  return [...architectureModeScenarios]
-    .sort()
-    .map((key) => {
-      const [architecture, mode, scenario] = key.split("|");
-      const startup = latencyByKey.get(`${key}|startup-session-ready`);
-      const firstError = latencyByKey.get(`${key}|first-error-latency`);
-      const warmError = latencyByKey.get(`${key}|warm-error-latency`);
-      const cleanState = latencyByKey.get(`${key}|clean-state-latency`);
-      const firstHover = latencyByKey.get(`${key}|first-hover-latency`);
-      const warmHover = latencyByKey.get(`${key}|warm-hover-latency`);
-      const ide = resourceByKey.get(`${key}|ide`);
-      const sidecar = resourceByKey.get(`${key}|sidecar`);
-      const combined = resourceByKey.get(`${key}|combined`);
-      const targetApps = new Set([
-        ...(startup?.targetApps || []),
-        ...(firstError?.targetApps || []),
-        ...(warmError?.targetApps || []),
-        ...(cleanState?.targetApps || []),
-        ...(firstHover?.targetApps || []),
-        ...(warmHover?.targetApps || []),
-        ...(ide?.targetApps || []),
-        ...(sidecar?.targetApps || []),
-        ...(combined?.targetApps || []),
-      ]);
+  return [...architectureModeScenarios].sort().map((key) => {
+    const [architecture, mode, scenario] = key.split("|");
+    const startup = latencyByKey.get(`${key}|startup-session-ready`);
+    const firstError = latencyByKey.get(`${key}|first-error-latency`);
+    const warmError = latencyByKey.get(`${key}|warm-error-latency`);
+    const cleanState = latencyByKey.get(`${key}|clean-state-latency`);
+    const firstHover = latencyByKey.get(`${key}|first-hover-latency`);
+    const warmHover = latencyByKey.get(`${key}|warm-hover-latency`);
+    const ide = resourceByKey.get(`${key}|ide`);
+    const sidecar = resourceByKey.get(`${key}|sidecar`);
+    const combined = resourceByKey.get(`${key}|combined`);
+    const targetApps = new Set([
+      ...(startup?.targetApps || []),
+      ...(firstError?.targetApps || []),
+      ...(warmError?.targetApps || []),
+      ...(cleanState?.targetApps || []),
+      ...(firstHover?.targetApps || []),
+      ...(warmHover?.targetApps || []),
+      ...(ide?.targetApps || []),
+      ...(sidecar?.targetApps || []),
+      ...(combined?.targetApps || []),
+    ]);
 
-      return {
-        architecture,
-        mode,
-        scenario,
-        targetApps: [...targetApps].sort(),
-        runCount: Math.max(
-          warmError?.runCount || 0,
-          warmHover?.runCount || 0,
-          firstError?.runCount || 0,
-          firstHover?.runCount || 0,
-          startup?.runCount || 0,
-          cleanState?.runCount || 0,
-          combined?.runCount || 0,
-          ide?.runCount || 0,
-          sidecar?.runCount || 0,
-        ),
-        warmProbeCount: warmError?.sampleCount || warmHover?.sampleCount || 0,
-        startupMedianMs: startup?.medianLatencyMs ?? null,
-        firstErrorMedianMs: firstError?.medianLatencyMs ?? null,
-        warmErrorMedianMs: warmError?.medianLatencyMs ?? null,
-        warmErrorP95Ms: warmError?.p95LatencyMs ?? null,
-        cleanStateMedianMs: cleanState?.medianLatencyMs ?? null,
-        firstHoverMedianMs: firstHover?.medianLatencyMs ?? null,
-        warmHoverMedianMs: warmHover?.medianLatencyMs ?? null,
-        warmHoverP95Ms: warmHover?.p95LatencyMs ?? null,
-        ideAvgCpuMillicores: ide?.avgCpuMillicores ?? null,
-        idePeakCpuMillicores: ide?.peakCpuMillicores ?? null,
-        ideAvgMemoryMiB: ide?.avgMemoryMiB ?? null,
-        idePeakMemoryMiB: ide?.peakMemoryMiB ?? null,
-        sidecarAvgCpuMillicores: sidecar?.avgCpuMillicores ?? null,
-        sidecarPeakCpuMillicores: sidecar?.peakCpuMillicores ?? null,
-        sidecarAvgMemoryMiB: sidecar?.avgMemoryMiB ?? null,
-        sidecarPeakMemoryMiB: sidecar?.peakMemoryMiB ?? null,
-        combinedAvgCpuMillicores: combined?.avgCpuMillicores ?? null,
-        combinedPeakCpuMillicores: combined?.peakCpuMillicores ?? null,
-        combinedAvgMemoryMiB: combined?.avgMemoryMiB ?? null,
-        combinedPeakMemoryMiB: combined?.peakMemoryMiB ?? null,
-      };
-    });
+    return {
+      architecture,
+      mode,
+      scenario,
+      targetApps: [...targetApps].sort(),
+      runCount: Math.max(
+        warmError?.runCount || 0,
+        warmHover?.runCount || 0,
+        firstError?.runCount || 0,
+        firstHover?.runCount || 0,
+        startup?.runCount || 0,
+        cleanState?.runCount || 0,
+        combined?.runCount || 0,
+        ide?.runCount || 0,
+        sidecar?.runCount || 0,
+      ),
+      warmProbeCount: warmError?.sampleCount || warmHover?.sampleCount || 0,
+      startupMedianMs: startup?.medianLatencyMs ?? null,
+      firstErrorMedianMs: firstError?.medianLatencyMs ?? null,
+      warmErrorMedianMs: warmError?.medianLatencyMs ?? null,
+      warmErrorP95Ms: warmError?.p95LatencyMs ?? null,
+      cleanStateMedianMs: cleanState?.medianLatencyMs ?? null,
+      firstHoverMedianMs: firstHover?.medianLatencyMs ?? null,
+      warmHoverMedianMs: warmHover?.medianLatencyMs ?? null,
+      warmHoverP95Ms: warmHover?.p95LatencyMs ?? null,
+      ideAvgCpuMillicores: ide?.avgCpuMillicores ?? null,
+      idePeakCpuMillicores: ide?.peakCpuMillicores ?? null,
+      ideAvgMemoryMiB: ide?.avgMemoryMiB ?? null,
+      idePeakMemoryMiB: ide?.peakMemoryMiB ?? null,
+      sidecarAvgCpuMillicores: sidecar?.avgCpuMillicores ?? null,
+      sidecarPeakCpuMillicores: sidecar?.peakCpuMillicores ?? null,
+      sidecarAvgMemoryMiB: sidecar?.avgMemoryMiB ?? null,
+      sidecarPeakMemoryMiB: sidecar?.peakMemoryMiB ?? null,
+      combinedAvgCpuMillicores: combined?.avgCpuMillicores ?? null,
+      combinedPeakCpuMillicores: combined?.peakCpuMillicores ?? null,
+      combinedAvgMemoryMiB: combined?.avgMemoryMiB ?? null,
+      combinedPeakMemoryMiB: combined?.peakMemoryMiB ?? null,
+    };
+  });
 }
 
 function csvValue(value) {

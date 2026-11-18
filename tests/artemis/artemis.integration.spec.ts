@@ -44,7 +44,7 @@ test.describe("Theia Artemis Integration - No Scorpio", () => {
   );
   const sortStrategyTemplate = readFileSync(sortStrategyTemplatePath, "utf8");
   */
- 
+
   test.beforeAll(async ({ artemis }) => {
     await artemis.login(process.env.ARTEMIS_USER!, process.env.ARTEMIS_PWD!);
     course = await artemis.createSimpleCourse();
@@ -157,21 +157,29 @@ async function writeIntoFile(
           TheiaTextEditor,
         ),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout opening editor')), timeout)
+          setTimeout(
+            () => reject(new Error("Timeout opening editor")),
+            timeout,
+          ),
         ),
       ]);
       break;
     } catch (error) {
-      console.log(`Attempt ${attempt}/${maxRetries} to open editor failed:`, error);
+      console.log(
+        `Attempt ${attempt}/${maxRetries} to open editor failed:`,
+        error,
+      );
       if (attempt === maxRetries) {
-        throw new Error(`Failed to open editor after ${maxRetries} attempts: ${error}`);
+        throw new Error(
+          `Failed to open editor after ${maxRetries} attempts: ${error}`,
+        );
       }
       await artemisTheia.page.waitForTimeout(1000); // Wait 1 second before retry
     }
   }
 
   if (!editor) {
-    throw new Error('Editor is undefined after retries');
+    throw new Error("Editor is undefined after retries");
   }
 
   await editor.activate();

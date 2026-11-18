@@ -119,7 +119,6 @@ class MCPClient {
         );
       }
     }
-
   }
 
   async cleanup() {

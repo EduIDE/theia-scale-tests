@@ -45,7 +45,11 @@ export async function ensureMinimalJavaProjectViaTerminal(
   debugLog("benchmark", "java project setup: mkdir start");
   await terminal.submit("mkdir -p src/de src/bench bin .settings");
   debugLog("benchmark", "java project setup: mkdir done");
-  await debugStepPause(theiaApp, debugStepDelayMs, "java project directories created");
+  await debugStepPause(
+    theiaApp,
+    debugStepDelayMs,
+    "java project directories created",
+  );
 
   await writeTerminalFile(
     theiaApp,
@@ -102,12 +106,18 @@ async function writeTerminalFile(
       lineNumber: index + 1,
       preview: line.slice(0, 80),
     });
-    await terminal.submit(`printf '%s\\n' ${shellQuote(line)} >> ${shellQuote(filePath)}`);
+    await terminal.submit(
+      `printf '%s\\n' ${shellQuote(line)} >> ${shellQuote(filePath)}`,
+    );
     debugLog("benchmark", `${label}: append line done`, {
       filePath,
       lineNumber: index + 1,
     });
-    await debugStepPause(theiaApp, debugStepDelayMs, `${label} append line ${index + 1} done`);
+    await debugStepPause(
+      theiaApp,
+      debugStepDelayMs,
+      `${label} append line ${index + 1} done`,
+    );
   }
 }
 

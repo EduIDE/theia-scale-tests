@@ -48,7 +48,9 @@ const deterministic: boolean = process.env.DETERMINISTIC
 // Playwright's test and Artillery's test both pass a step(name, fn) helper.
 export async function virtualStudent(
   page: Page,
-  test: { step: (name: string, fn: () => Promise<unknown>) => Promise<unknown> },
+  test: {
+    step: (name: string, fn: () => Promise<unknown>) => Promise<unknown>;
+  },
 ) {
   const { step } = test;
   console.log("Starting virtual student");

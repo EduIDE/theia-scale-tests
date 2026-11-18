@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint . && prettier --check .",
     "test:unit": "playwright test --project=unit",
     "bench:ui": "playwright test tests/ide/benchmark/LSLatency.ui.benchmark.spec.ts --project=benchmark",
     "bench:aggregate": "node scripts/aggregate-benchmark.mjs",

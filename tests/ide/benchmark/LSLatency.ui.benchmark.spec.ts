@@ -16,9 +16,7 @@ import {
 } from "../../../fixtures/utils/benchmark-metrics";
 
 type BenchmarkScenario =
-  | "simple-type-error"
-  | "import-semantic-error"
-  | "hover-context";
+  "simple-type-error" | "import-semantic-error" | "hover-context";
 
 type ScenarioDefinition = {
   name: BenchmarkScenario;
@@ -52,9 +50,12 @@ const benchmarkScenarios: BenchmarkScenario[] = [
 
 test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   const outputDir = process.env.BENCH_OUTPUT_DIR || "test-data/benchmark";
-  const benchmarkFile = process.env.BENCH_FIXED_FILE || "src/de/BubbleSort.java";
-  const helperFile = process.env.BENCH_HELPER_FILE || "src/bench/BenchHelper.java";
-  const benchmarkClassName = path.basename(benchmarkFile, ".java") || "BenchLatency";
+  const benchmarkFile =
+    process.env.BENCH_FIXED_FILE || "src/de/BubbleSort.java";
+  const helperFile =
+    process.env.BENCH_HELPER_FILE || "src/bench/BenchHelper.java";
+  const benchmarkClassName =
+    path.basename(benchmarkFile, ".java") || "BenchLatency";
   const architecture = process.env.BENCH_ARCH || "external";
   const mode = process.env.BENCH_MODE || "warm";
   const scenario = parseBenchmarkScenario(process.env.BENCH_SCENARIO);
@@ -91,7 +92,8 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   const hoverDebugPauseMs = process.env.BENCH_HOVER_DEBUG_TARGET_PAUSE_MS
     ? parseInt(process.env.BENCH_HOVER_DEBUG_TARGET_PAUSE_MS, 10)
     : 0;
-  const hoverDebugTargetLabel = process.env.BENCH_HOVER_DEBUG_TARGET_LABEL || "";
+  const hoverDebugTargetLabel =
+    process.env.BENCH_HOVER_DEBUG_TARGET_LABEL || "";
   const debugStepDelayMs = process.env.BENCH_DEBUG_STEP_DELAY_MS
     ? parseInt(process.env.BENCH_DEBUG_STEP_DELAY_MS, 10)
     : 0;
@@ -102,7 +104,8 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
     ? parseInt(process.env.BENCH_PROBES, 10)
     : 20;
   const targetApp = process.env.BENCH_TARGET_APP || "java-17-standalone";
-  const runId = process.env.BENCH_RUN_ID || `${architecture}-${mode}-run-${run}`;
+  const runId =
+    process.env.BENCH_RUN_ID || `${architecture}-${mode}-run-${run}`;
   const scenarioDefinition = buildScenarioDefinition(
     scenario,
     benchmarkFile,
@@ -146,11 +149,11 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   appendBenchmarkLatencyRecord(outputDir, {
     timestamp: new Date().toISOString(),
     architecture,
-      mode,
-      scenario,
-      run,
-      runId,
-      probe: 0,
+    mode,
+    scenario,
+    run,
+    runId,
+    probe: 0,
     latencyMs: startupLatencyMs,
     timedOut: false,
     signal: "startup-session-ready",
@@ -186,7 +189,11 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
     await waitWithCountdown(page, hoverWarmupMs, 5000, "hover warmup");
     debugLog("benchmark", "hover warmup complete");
 
-    for (let targetIndex = 0; targetIndex < hoverTargets.length; targetIndex++) {
+    for (
+      let targetIndex = 0;
+      targetIndex < hoverTargets.length;
+      targetIndex++
+    ) {
       const hoverTarget = hoverTargets[targetIndex];
       if (
         hoverDebugPauseMs > 0 &&
@@ -198,7 +205,12 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
           hoverDebugPauseMs,
           phase: "warmup",
         });
-        await waitWithCountdown(page, hoverDebugPauseMs, 5000, `hover debug pause ${hoverTarget.label}`);
+        await waitWithCountdown(
+          page,
+          hoverDebugPauseMs,
+          5000,
+          `hover debug pause ${hoverTarget.label}`,
+        );
       }
       await hideHover(page);
       const warmupHover = await waitForHoverWithTimeout(
@@ -263,10 +275,14 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
       debugLog("benchmark", "hover reset after warmup", {
         hoverTarget: hoverTarget.label,
       });
-      debugLog("benchmark", "stabilization wait before measured probes for hover target", {
-        hoverTarget: hoverTarget.label,
-        stabilizationWaitMs,
-      });
+      debugLog(
+        "benchmark",
+        "stabilization wait before measured probes for hover target",
+        {
+          hoverTarget: hoverTarget.label,
+          stabilizationWaitMs,
+        },
+      );
       await page.waitForTimeout(stabilizationWaitMs);
       debugLog("benchmark", "stabilization complete for hover target", {
         hoverTarget: hoverTarget.label,
@@ -341,9 +357,17 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
     }
   } else {
     await squigglyError.waitFor({ state: "hidden", timeout: 30000 });
-    debugLog("benchmark", "baseline established", { signal: "squiggly hidden" });
+    debugLog("benchmark", "baseline established", {
+      signal: "squiggly hidden",
+    });
 
-    await injectScenarioError(page, scenarioDefinition, scenario, 0, debugStepDelayMs);
+    await injectScenarioError(
+      page,
+      scenarioDefinition,
+      scenario,
+      0,
+      debugStepDelayMs,
+    );
     const warmupStartedAt = Date.now();
     try {
       const warmupResult = await waitForErrorWithNudge(
@@ -354,7 +378,11 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
       );
       debugLog("benchmark", "warmup error wait completed", warmupResult);
     } catch {
-      const debugSnapshot = await collectDebugSnapshot(page, problemIndicator, theiaApp);
+      const debugSnapshot = await collectDebugSnapshot(
+        page,
+        problemIndicator,
+        theiaApp,
+      );
       debugLog("benchmark", "warmup diagnostics did not appear", debugSnapshot);
       throw new Error(
         `Warmup squiggly timeout after ${warmupTimeoutMs}ms | problems=${debugSnapshot.problems} warnings=${debugSnapshot.warnings} squiggles=${debugSnapshot.squiggleCount} outputTail=${debugSnapshot.outputTail}`,
@@ -388,7 +416,11 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
       targetApp,
     });
 
-    await deleteLineContainingText(page, markerCommentForProbe(0), debugStepDelayMs);
+    await deleteLineContainingText(
+      page,
+      markerCommentForProbe(0),
+      debugStepDelayMs,
+    );
     await waitForCleanState(page, problemIndicator, 90000);
     debugLog("benchmark", "baseline reset after warmup");
 
@@ -402,7 +434,11 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
     // measured cycles: unclean -> clean, then clean -> unclean
     for (let probe = 1; probe <= warmProbeCount; probe++) {
       if (probe > 1) {
-        await deleteLineContainingText(page, markerCommentForProbe(probe - 1), debugStepDelayMs);
+        await deleteLineContainingText(
+          page,
+          markerCommentForProbe(probe - 1),
+          debugStepDelayMs,
+        );
       }
       const toCleanStartedAt = Date.now();
       await waitForCleanState(page, problemIndicator, 90000);
@@ -431,8 +467,19 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
       });
 
       const startedAt = Date.now();
-      await injectScenarioError(page, scenarioDefinition, scenario, probe, debugStepDelayMs);
-      const errorResult = await waitForErrorWithNudge(page, squigglyError, probeTimeoutMs, 5000);
+      await injectScenarioError(
+        page,
+        scenarioDefinition,
+        scenario,
+        probe,
+        debugStepDelayMs,
+      );
+      const errorResult = await waitForErrorWithNudge(
+        page,
+        squigglyError,
+        probeTimeoutMs,
+        5000,
+      );
       const latencyMs = Date.now() - startedAt;
 
       debugLog("benchmark", "warm probe latency", {
@@ -486,13 +533,19 @@ async function writeEditorBaseline(
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     debugLog("benchmark", "baseline rewrite start", { attempt });
 
-    await page.context().grantPermissions(["clipboard-read", "clipboard-write"], {
-      origin: new URL(page.url()).origin,
-    });
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"], {
+        origin: new URL(page.url()).origin,
+      });
     await page.locator(".monaco-editor").first().click();
     await page.keyboard.press(selectAll);
-    await page.evaluate(async (text) => { await navigator.clipboard.writeText(text); }, baseline);
-    await page.keyboard.press(process.platform === "darwin" ? "Meta+V" : "Control+V");
+    await page.evaluate(async (text) => {
+      await navigator.clipboard.writeText(text);
+    }, baseline);
+    await page.keyboard.press(
+      process.platform === "darwin" ? "Meta+V" : "Control+V",
+    );
     await page.waitForTimeout(200);
     await page.keyboard.press(save);
 
@@ -733,9 +786,17 @@ async function injectScenarioError(
       `String helperText${probe} = BenchHelper.compute(names); ${markerComment}`,
     );
   }
-  await debugStepPause(page, debugStepDelayMs, `error line inserted: probe ${probe}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `error line inserted: probe ${probe}`,
+  );
   await saveVisibleEditor(page);
-  await debugStepPause(page, debugStepDelayMs, `editor saved after error insert: probe ${probe}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `editor saved after error insert: probe ${probe}`,
+  );
 }
 
 async function writeHelperFileViaTerminal(
@@ -747,7 +808,11 @@ async function writeHelperFileViaTerminal(
   debugLog("benchmark", "helper setup: open terminal", { helperFilePath });
   const terminal = await theiaApp.openTerminal(TheiaTerminal);
   debugLog("benchmark", "helper setup: terminal opened", { helperFilePath });
-  await debugStepPause(theiaApp.page, debugStepDelayMs, "helper terminal opened");
+  await debugStepPause(
+    theiaApp.page,
+    debugStepDelayMs,
+    "helper terminal opened",
+  );
   const helperDir = path.dirname(helperFilePath);
 
   if (helperDir && helperDir !== ".") {
@@ -802,7 +867,11 @@ async function ensureScenarioFilesViaTerminal(
     mainFilePath: scenarioDefinition.mainFilePath,
   });
   await debugStepPause(theiaApp.page, debugStepDelayMs, "main terminal opened");
-  await ensureMinimalJavaProjectViaTerminal(theiaApp, terminal, debugStepDelayMs);
+  await ensureMinimalJavaProjectViaTerminal(
+    theiaApp,
+    terminal,
+    debugStepDelayMs,
+  );
   const mainDir = path.dirname(scenarioDefinition.mainFilePath);
 
   if (mainDir && mainDir !== ".") {
@@ -825,7 +894,11 @@ async function ensureScenarioFilesViaTerminal(
     debugLog("benchmark", "file setup: helper write done", {
       helperFilePath: scenarioDefinition.helperFilePath,
     });
-    await debugStepPause(theiaApp.page, debugStepDelayMs, "helper file created");
+    await debugStepPause(
+      theiaApp.page,
+      debugStepDelayMs,
+      "helper file created",
+    );
   }
 }
 
@@ -840,7 +913,11 @@ async function createAndFocusWorkspaceFileViaMenu(
   debugLog("benchmark", "file create: open explorer start", { filePath });
   await theiaApp.openView(TheiaExplorerView);
   debugLog("benchmark", "file create: open explorer done", { filePath });
-  await debugStepPause(page, debugStepDelayMs, "explorer opened for presentation");
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    "explorer opened for presentation",
+  );
 
   debugLog("benchmark", "file create: open file menu start", { filePath });
   const fileMenu = await theiaApp.menuBar.openMenu("File");
@@ -924,11 +1001,23 @@ async function deleteLineContainingText(
     .first();
   await line.waitFor({ state: "visible" });
   await line.click({ clickCount: 3 });
-  await debugStepPause(page, debugStepDelayMs, `line selected for delete: ${textContainedByExistingLine}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `line selected for delete: ${textContainedByExistingLine}`,
+  );
   await page.keyboard.press("Backspace");
-  await debugStepPause(page, debugStepDelayMs, `line deleted: ${textContainedByExistingLine}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `line deleted: ${textContainedByExistingLine}`,
+  );
   await saveVisibleEditor(page);
-  await debugStepPause(page, debugStepDelayMs, `editor saved after delete: ${textContainedByExistingLine}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `editor saved after delete: ${textContainedByExistingLine}`,
+  );
 }
 
 async function saveVisibleEditor(
@@ -950,16 +1039,22 @@ async function waitForHoverWithTimeout(
   const loadingPattern = /loading/i;
 
   const editorRoot = page.locator(".monaco-editor").first();
-  const line = editorRoot.locator(
-    `.view-lines .view-line:has-text("${hoverTargetDefinition.lineText}")`,
-  ).first();
+  const line = editorRoot
+    .locator(
+      `.view-lines .view-line:has-text("${hoverTargetDefinition.lineText}")`,
+    )
+    .first();
   await line.waitFor({ state: "visible", timeout: timeoutMs });
 
   const hoverTarget = hoverTargetDefinition.tokenSelector
     ? page.locator(hoverTargetDefinition.tokenSelector).first()
     : line.locator(`span:has-text("${hoverTargetDefinition.token}")`).first();
   await hoverTarget.waitFor({ state: "visible", timeout: timeoutMs });
-  await debugStepPause(page, debugStepDelayMs, `hover target visible: ${hoverTargetDefinition.label}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `hover target visible: ${hoverTargetDefinition.label}`,
+  );
 
   const hover = page.locator(".monaco-hover:not(.hidden)").first();
   const startedAt = Date.now();
@@ -968,14 +1063,20 @@ async function waitForHoverWithTimeout(
     token: hoverTargetDefinition.label,
     timeoutMs,
   });
-  await debugStepPause(page, debugStepDelayMs, `hover triggered: ${hoverTargetDefinition.label}`);
+  await debugStepPause(
+    page,
+    debugStepDelayMs,
+    `hover triggered: ${hoverTargetDefinition.label}`,
+  );
   await hover.waitFor({ state: "visible", timeout: timeoutMs });
   await debugStepPause(page, debugStepDelayMs, "hover visible");
 
   const hoverVisibleLatencyMs = Date.now() - startedAt;
   let hoverText = (await hover.textContent().catch(() => "")) || "";
   const loadingSeen = loadingPattern.test(hoverText);
-  let resolvedHoverLatencyMs: number | null = loadingSeen ? null : hoverVisibleLatencyMs;
+  let resolvedHoverLatencyMs: number | null = loadingSeen
+    ? null
+    : hoverVisibleLatencyMs;
 
   if (loadingSeen) {
     debugLog("benchmark", "hover loading visible; keeping pointer on target", {
@@ -986,9 +1087,13 @@ async function waitForHoverWithTimeout(
     while (Date.now() < deadline) {
       await page.waitForTimeout(hoverResolvePollMs);
       if (!(await hover.isVisible().catch(() => false))) {
-        debugLog("benchmark", "hover hidden while waiting for resolved content", {
-          token: hoverTargetDefinition.label,
-        });
+        debugLog(
+          "benchmark",
+          "hover hidden while waiting for resolved content",
+          {
+            token: hoverTargetDefinition.label,
+          },
+        );
         break;
       }
       hoverText = (await hover.textContent().catch(() => "")) || "";
@@ -1019,12 +1124,14 @@ function markerCommentForProbe(probe: number): string {
   return `// ${marker}`;
 }
 
-async function hideHover(
-  page: import("@playwright/test").Page,
-): Promise<void> {
+async function hideHover(page: import("@playwright/test").Page): Promise<void> {
   await page.mouse.move(5, 5);
   await page.keyboard.press("Escape").catch(() => undefined);
-  await page.locator(".monaco-hover").first().waitFor({ state: "hidden", timeout: 3000 }).catch(() => undefined);
+  await page
+    .locator(".monaco-hover")
+    .first()
+    .waitFor({ state: "hidden", timeout: 3000 })
+    .catch(() => undefined);
 }
 
 async function waitWithCountdown(
@@ -1061,9 +1168,14 @@ async function waitForShellInitializedWithTimeout(
       theiaApp.waitForShellAndInitialized(),
       new Promise((_, reject) => {
         timeoutId = setTimeout(
-        () => reject(new Error(`Timed out waiting for shell initialization after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
+          () =>
+            reject(
+              new Error(
+                `Timed out waiting for shell initialization after ${timeoutMs}ms`,
+              ),
+            ),
+          timeoutMs,
+        );
       }),
     ]);
   } finally {
@@ -1073,7 +1185,9 @@ async function waitForShellInitializedWithTimeout(
   }
 }
 
-function parseBenchmarkScenario(value = "simple-type-error"): BenchmarkScenario {
+function parseBenchmarkScenario(
+  value = "simple-type-error",
+): BenchmarkScenario {
   if (benchmarkScenarios.includes(value as BenchmarkScenario)) {
     return value as BenchmarkScenario;
   }
@@ -1197,7 +1311,9 @@ async function waitForCleanState(
   const finalSquiggles = await page
     .locator(".monaco-editor .squiggly-error")
     .count();
-  const finalProblems = await problemIndicator.numberOfProblems().catch(() => -1);
+  const finalProblems = await problemIndicator
+    .numberOfProblems()
+    .catch(() => -1);
   const indicatorText = await page
     .locator("#problem-marker-status")
     .innerText()
@@ -1218,7 +1334,9 @@ async function collectDebugSnapshot(
   warnings: number;
   outputTail: string;
 }> {
-  const squiggleCount = await page.locator(".monaco-editor .squiggly-error").count();
+  const squiggleCount = await page
+    .locator(".monaco-editor .squiggly-error")
+    .count();
   const problems = await problemIndicator.numberOfProblems().catch(() => -1);
   const warnings = await problemIndicator.numberOfWarnings().catch(() => -1);
 
