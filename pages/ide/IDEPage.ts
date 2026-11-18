@@ -197,7 +197,9 @@ export class IDEPage {
           }),
         ]);
         return;
-      } catch (_) {}
+      } catch {
+        // not ready yet, reload and try again
+      }
     }
     throw new Error("waitForReady failed after 3 reloads");
   }

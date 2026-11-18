@@ -54,6 +54,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
   ```
   This takes about 15 minutes (13 to 15 in CI). The first launch after a deploy can take minutes while images are pulled.
 - To run only the pure helper tests (no environment needed): `npm run test:unit`
+- Lint: `npm run lint` (ESLint and Prettier; `npx prettier --write .` fixes formatting). CI runs it as the `lint` job before the e2e `test` job, which only starts when lint is clean.
 - To run tests locally using a Theia Instance on localhost, change the environment variable to the corresponding port and run the tests using:
 
   ```bash

@@ -1,4 +1,3 @@
-/* global process, console, URL */
 // Turns Playwright's JSON report and the metric files into a Markdown summary
 // for the run page and a self-contained HTML page for download.
 import fs from "fs";

@@ -136,10 +136,10 @@ test("buildSummaryRows merges latency and resource summaries into one row", asyn
 
   expect(rows).toHaveLength(1);
   expect(rows[0]).toMatchObject({
-      architecture: "external",
-      mode: "warm",
-      scenario: "simple-type-error",
-      runCount: 2,
+    architecture: "external",
+    mode: "warm",
+    scenario: "simple-type-error",
+    runCount: 2,
     warmProbeCount: 10,
     warmErrorMedianMs: 1200,
     warmErrorP95Ms: 2000,
@@ -198,7 +198,10 @@ test("complete-run filtering excludes partial warm runs", async () => {
   ];
 
   const completeRunKeys = collectCompleteLatencyRunKeys(records);
-  const filteredRecords = filterLatencyRecordsToCompleteRuns(records, completeRunKeys);
+  const filteredRecords = filterLatencyRecordsToCompleteRuns(
+    records,
+    completeRunKeys,
+  );
   const filteredResourceRows = filterResourceRowsToCompleteRuns(
     [
       {
@@ -223,7 +226,9 @@ test("complete-run filtering excludes partial warm runs", async () => {
     completeRunKeys,
   );
 
-  expect([...completeRunKeys]).toEqual(["external|warm|simple-type-error|run-complete"]);
+  expect([...completeRunKeys]).toEqual([
+    "external|warm|simple-type-error|run-complete",
+  ]);
   expect(filteredRecords).toHaveLength(4);
   expect(filteredResourceRows).toHaveLength(1);
   expect(filteredResourceRows[0].run_id).toBe("run-complete");
@@ -260,7 +265,9 @@ test("hover runs are treated as complete without error signals", async () => {
     },
   ]);
 
-  expect([...completeRunKeys]).toEqual(["embedded|warm|hover-context|hover-run"]);
+  expect([...completeRunKeys]).toEqual([
+    "embedded|warm|hover-context|hover-run",
+  ]);
 });
 
 test("resource unit parsers normalize kubectl top values", async () => {
@@ -269,6 +276,6 @@ test("resource unit parsers normalize kubectl top values", async () => {
   expect(parseMemoryMiB("512Mi")).toBe(512);
   expect(parseMemoryMiB("1Gi")).toBe(1024);
   expect(parseMemoryMiB("1K")).toBeCloseTo(1000 / 1024 / 1024);
-  expect(parseMemoryMiB("1M")).toBeCloseTo(1000 * 1000 / 1024 / 1024);
-  expect(parseMemoryMiB("1G")).toBeCloseTo(1000 * 1000 * 1000 / 1024 / 1024);
+  expect(parseMemoryMiB("1M")).toBeCloseTo((1000 * 1000) / 1024 / 1024);
+  expect(parseMemoryMiB("1G")).toBeCloseTo((1000 * 1000 * 1000) / 1024 / 1024);
 });

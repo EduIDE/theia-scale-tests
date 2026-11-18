@@ -83,9 +83,7 @@ test("matchSessions finds exactly one template, never a sibling", () => {
 
 test("workspaceName follows the landing page", () => {
   const name = workspaceName("java-17-standalone", "maven", "Alice.Example");
-  expect(name).toMatch(
-    /^ws-java-17-stan-playground-alice-exampl-[0-9a-f]{8}$/,
-  );
+  expect(name).toMatch(/^ws-java-17-stan-playground-alice-exampl-[0-9a-f]{8}$/);
   expect(
     workspaceName("java-17-standalone", "gradle", "Alice.Example"),
   ).not.toBe(name);

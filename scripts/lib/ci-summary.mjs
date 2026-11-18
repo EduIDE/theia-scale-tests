@@ -16,10 +16,7 @@ export const escapeHtml = (s) =>
     .replace(/"/g, "&quot;");
 
 const escapeCell = (s) =>
-  String(s)
-    .replace(/\\/g, "\\\\")
-    .replace(/\|/g, "\\|")
-    .replace(/\r?\n/g, " ");
+  String(s).replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
 
 /** First line of an error, without colour codes, cut to a length a table can hold. */
 export function firstErrorLine(result) {
@@ -279,4 +276,3 @@ ${
 </body></html>
 `;
 }
-

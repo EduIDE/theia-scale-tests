@@ -20,4 +20,3 @@ jobs:
               issue_number: context.issue.number,
               assignees: [context.payload.pull_request.user.login]
             });
-
