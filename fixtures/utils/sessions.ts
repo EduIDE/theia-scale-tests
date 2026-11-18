@@ -67,7 +67,7 @@ export async function startSession(
   const launched = await launchIde(browser, spec, testInfo, opts.metricName);
   try {
     if (spec.app === "c-standalone") {
-      await recordMakefileToolsPrompt(launched.page, testInfo);
+      await expectNoMakefileToolsPrompt(launched.page, testInfo);
     }
     if ((await service.sessionsOf(spec)).length === 0) {
       throw new Error(
@@ -176,24 +176,24 @@ export function sessionAfterSpecs(key: string) {
 }
 
 /**
- * The C image ships Makefile Tools, which asks "Configuring project ... Do you
- * want to continue?" when a Makefile is opened, and file creation can go wrong
- * while that question is open. Whether it shows on first open is recorded in the
- * report, with a screenshot.
+ * The C image ships Makefile Tools, which used to ask "Configuring project ...
+ * Do you want to continue?" when a Makefile was opened and broke the file
+ * creation that followed. The image turns that off (EduIDE/EduIDE#236), so the
+ * question showing up again is a regression.
  */
-async function recordMakefileToolsPrompt(page: Page, testInfo: TestInfo) {
-  const prompt = page.getByText("Configuring project", { exact: false });
-  const shown = await prompt
+async function expectNoMakefileToolsPrompt(page: Page, testInfo: TestInfo) {
+  const shown = await page
+    .getByText("Configuring project", { exact: false })
     .first()
     .waitFor({ state: "visible", timeout: 30_000 })
     .then(() => true)
     .catch(() => false);
-  testInfo.annotations.push({
-    type: "makefile-tools-prompt",
-    description: shown ? "shown on first open" : "not shown",
-  });
+  if (!shown) return;
   await testInfo.attach("makefile-tools-prompt", {
     body: await page.screenshot(),
     contentType: "image/png",
   });
+  throw new Error(
+    "Makefile Tools asked to configure the project on first open; the C image should have this turned off",
+  );
 }
