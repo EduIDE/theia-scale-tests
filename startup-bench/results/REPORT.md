@@ -25,7 +25,7 @@ Times are seconds after the CR was created.
 | Control plane CPU               | 11m           | 5m               | 13m           | 6m              | 5m               | 15m           |
 
 \* Upstream in lazy mode marks the session handled right away and publishes no URL; the harness uses `/instances/<session uid>/` from then on.
-\*\* One refill took 300 s (the harness timeout), the operator logged "Error while removing ingress rule: The rule's HTTP block is null" on release.
+\*\* One refill completed only after 300.6 s, at the very end of the harness limit; that outlier drives the p90. The operator logged "Error while removing ingress rule: The rule's HTTP block is null" when a session was released.
 
 - Cold: Go is about 0.6 s faster than EduIDE Cloud, and EduIDE Cloud is about 1.3 s faster than upstream.
   Upstream pulls its oauth2-proxy with `imagePullPolicy: Always` on every start (about 0.8 s against the registry) and its nginx route answers about 1 s after the pod.

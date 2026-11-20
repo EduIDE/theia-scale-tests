@@ -263,10 +263,10 @@ async function portForward(v, pod) {
     ":3000",
   ]);
   const port = await new Promise((resolve, reject) => {
-    const t = setTimeout(
-      () => reject(new Error("port-forward timeout")),
-      15000,
-    );
+    const t = setTimeout(() => {
+      p.kill();
+      reject(new Error("port-forward timeout"));
+    }, 15000);
     p.stdout.on("data", (d) => {
       const m = String(d).match(/127\.0\.0\.1:(\d+)/);
       if (m) {
@@ -521,10 +521,16 @@ async function runOnce(v, runIndex, browser) {
     }
     await sleep(500);
   }
+  // A session that is still there would distort the next run.
+  if (pod && cleanupMs === null) failure = failure ?? "cleanup timeout";
   let poolRefillMs = null;
   if (opt.mode === "warm") {
-    await waitPoolReady(v, 300000);
-    poolRefillMs = Date.now() - tDel;
+    try {
+      await waitPoolReady(v, 300000);
+      poolRefillMs = Date.now() - tDel;
+    } catch (e) {
+      failure = failure ?? `pool refill: ${e.message}`;
+    }
   }
 
   return {
@@ -565,6 +571,9 @@ async function main() {
       if (opt.mode === "warm") await waitPoolReady(v, 300000);
       const rec = await runOnce(v, i, browser);
       appendFileSync(opt.out, JSON.stringify(rec) + "\n");
+      // The record is saved first; later runs would start on a cluster that is not back to its start state.
+      if (/^(cleanup timeout|pool refill)/.test(rec.failure ?? ""))
+        throw new Error(`stopping the series: ${rec.failure}`);
       const s = Object.entries(rec.ms)
         .map(([k, ms]) => `${k}=${(ms / 1000).toFixed(1)}s`)
         .join(" ");
