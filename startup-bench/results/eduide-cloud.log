@@ -1,0 +1,80 @@
+[eduide-cloud cold 1/5] ok created=0.2s scheduled=0.3s running=2.5s podReady=2.5s http200=2.8s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=4.7s explorer=5.2s cleanup=2238ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.3s scheduled=0.4s running=1.8s podReady=1.8s url=2.5s controlPlaneReady=2.5s http200=2.5s routed=2.5s shell=4.2s explorer=4.6s cleanup=1608ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.4s running=1.9s podReady=1.9s http200=2.1s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.3s explorer=4.7s cleanup=1629ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.4s running=2.2s podReady=2.2s http200=2.4s url=3.1s controlPlaneReady=3.1s routed=3.2s shell=4.6s explorer=5.0s cleanup=1702ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.2s scheduled=0.4s running=1.7s podReady=1.7s http200=2.4s url=2.4s controlPlaneReady=2.4s routed=2.5s shell=3.9s explorer=4.4s cleanup=2312ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.2s url=1.6s controlPlaneReady=1.6s routed=1.7s http200=1.8s shell=3.2s explorer=3.6s cleanup=1616ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.9s shell=3.0s explorer=3.5s cleanup=2262ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.5s url=1.8s controlPlaneReady=1.8s routed=2.0s http200=2.1s shell=3.4s explorer=3.8s cleanup=2277ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.1s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s shell=2.9s explorer=3.5s cleanup=1635ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.4s explorer=3.5s cleanup=1636ms pulled=false
+[eduide-cloud cold 1/5] ok created=0.3s scheduled=0.4s running=2.2s podReady=2.2s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=5.0s explorer=5.0s cleanup=1624ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.2s scheduled=0.3s running=2.3s podReady=2.3s http200=2.5s url=5.0s controlPlaneReady=5.0s routed=5.0s shell=7.1s explorer=7.1s cleanup=1595ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.3s running=2.4s podReady=2.4s http200=2.8s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=5.5s explorer=5.6s cleanup=1631ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.4s running=1.8s podReady=1.8s url=2.4s controlPlaneReady=2.4s routed=2.5s http200=2.5s shell=3.7s explorer=4.1s cleanup=1641ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.2s scheduled=0.4s running=1.7s podReady=1.7s http200=2.3s url=2.4s controlPlaneReady=2.4s routed=2.5s shell=4.3s explorer=4.3s cleanup=2236ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.2s url=1.6s controlPlaneReady=1.6s routed=1.7s http200=1.8s shell=3.0s explorer=3.5s cleanup=1652ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s shell=3.5s explorer=3.6s cleanup=2268ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.2s url=1.7s controlPlaneReady=1.7s routed=1.9s http200=2.0s shell=3.2s explorer=3.7s cleanup=1617ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.9s shell=3.7s explorer=3.8s cleanup=1607ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.5s explorer=3.5s cleanup=2312ms pulled=false
+[eduide-cloud cold 1/5] ok created=0.2s scheduled=0.3s running=1.9s podReady=1.9s http200=2.1s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.3s explorer=4.8s cleanup=1882ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.3s scheduled=0.4s running=2.0s podReady=2.0s http200=2.3s url=3.0s controlPlaneReady=3.0s routed=3.0s shell=4.4s explorer=4.8s cleanup=1652ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.4s running=2.2s podReady=2.2s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.3s explorer=4.7s cleanup=2291ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.4s running=1.9s podReady=1.9s http200=2.2s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=5.0s explorer=5.0s cleanup=1555ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.2s scheduled=0.4s running=2.0s podReady=2.0s http200=2.3s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.9s explorer=4.9s cleanup=1624ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.8s shell=3.0s explorer=3.4s cleanup=1657ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.1s explorer=3.6s cleanup=1670ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.6s explorer=3.6s cleanup=1599ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.8s http200=1.8s shell=3.5s explorer=3.5s cleanup=2301ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s shell=3.6s explorer=3.6s cleanup=1618ms pulled=false
+[eduide-cloud cold 1/5] ok created=0.2s scheduled=0.4s running=2.4s podReady=2.4s http200=2.7s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=4.8s explorer=5.2s cleanup=1602ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.2s scheduled=0.4s running=2.3s podReady=2.3s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.2s explorer=4.7s cleanup=2268ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.3s running=2.0s podReady=2.0s http200=2.3s url=2.9s controlPlaneReady=2.9s routed=2.9s shell=4.9s explorer=4.9s cleanup=1608ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.4s running=2.1s podReady=2.1s http200=2.4s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.3s explorer=4.8s cleanup=1628ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.2s scheduled=0.4s running=2.2s podReady=2.2s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.9s explorer=4.9s cleanup=2309ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.8s shell=3.0s explorer=3.4s cleanup=1687ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.9s explorer=3.9s cleanup=1641ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s http200=1.7s routed=1.7s shell=3.6s explorer=3.7s cleanup=1552ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s shell=3.5s explorer=3.6s cleanup=1637ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s shell=2.9s explorer=3.3s cleanup=2301ms pulled=false
+[eduide-cloud cold 1/5] timeout created=0.2s scheduled=0.4s running=2.5s podReady=2.5s http200=2.8s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=5.4s explorer=5.4s cleanup=1610ms pulled=false
+[eduide-cloud cold 2/5] timeout created=0.3s scheduled=0.4s running=2.2s podReady=2.2s http200=2.4s url=3.0s controlPlaneReady=3.0s routed=3.0s shell=4.9s explorer=4.9s cleanup=1683ms pulled=false
+[eduide-cloud cold 3/5] timeout created=0.2s scheduled=0.3s running=1.8s podReady=1.8s url=2.4s controlPlaneReady=2.4s routed=2.4s http200=2.5s shell=4.2s explorer=4.2s cleanup=1648ms pulled=false
+[eduide-cloud cold 4/5] timeout created=0.2s scheduled=0.4s running=1.7s podReady=1.7s http200=2.4s url=2.5s controlPlaneReady=2.5s routed=2.5s shell=4.4s explorer=4.4s cleanup=1651ms pulled=false
+[eduide-cloud cold 5/5] timeout created=0.2s scheduled=0.3s running=2.3s podReady=2.3s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s shell=4.9s explorer=5.0s cleanup=2241ms pulled=false
+[eduide-cloud warm 1/5] timeout created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s shell=3.5s explorer=3.5s cleanup=1624ms pulled=false
+[eduide-cloud warm 2/5] timeout created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s shell=3.5s explorer=3.5s cleanup=1747ms pulled=false
+[eduide-cloud warm 3/5] timeout created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.8s http200=1.8s shell=3.6s explorer=3.7s cleanup=1670ms pulled=false
+[eduide-cloud warm 4/5] timeout created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s shell=3.5s explorer=3.6s cleanup=1591ms pulled=false
+[eduide-cloud warm 5/5] timeout created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.8s http200=1.8s shell=3.7s explorer=3.7s cleanup=1535ms pulled=false
+[eduide-cloud cold 1/5] timeout created=0.2s scheduled=0.3s running=2.4s podReady=2.4s http200=2.6s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=5.4s explorer=5.4s cleanup=2339ms pulled=false
+[eduide-cloud cold 2/5] timeout created=0.2s scheduled=0.4s running=1.6s podReady=1.6s url=2.4s controlPlaneReady=2.4s http200=2.4s routed=2.5s shell=4.4s explorer=4.5s cleanup=2362ms pulled=false
+[eduide-cloud cold 3/5] timeout created=0.2s scheduled=0.4s running=2.7s podReady=2.7s http200=3.1s url=3.4s controlPlaneReady=3.4s routed=3.5s shell=5.3s explorer=5.4s cleanup=977ms pulled=false
+[eduide-cloud cold 4/5] timeout created=0.2s scheduled=0.3s running=2.2s podReady=2.2s http200=2.5s url=3.0s controlPlaneReady=3.0s routed=3.2s shell=5.2s explorer=5.3s cleanup=1621ms pulled=false
+[eduide-cloud cold 5/5] timeout created=0.3s scheduled=0.4s running=2.0s podReady=2.0s http200=2.2s url=3.0s controlPlaneReady=3.0s routed=3.0s shell=5.0s explorer=5.0s cleanup=1662ms pulled=false
+[eduide-cloud warm 1/5] timeout created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s shell=3.5s explorer=3.5s cleanup=3281ms pulled=false
+[eduide-cloud warm 2/5] timeout created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.9s shell=3.8s explorer=3.9s cleanup=2283ms pulled=false
+[eduide-cloud warm 3/5] timeout created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.9s shell=3.6s explorer=3.7s cleanup=1935ms pulled=false
+[eduide-cloud warm 4/5] timeout created=0.3s url=1.6s controlPlaneReady=1.6s routed=1.8s http200=1.8s shell=3.6s explorer=3.7s cleanup=1634ms pulled=false
+[eduide-cloud warm 5/5] timeout created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s shell=3.5s explorer=3.6s cleanup=1700ms pulled=false
+[eduide-cloud cold 1/5] ok created=0.2s scheduled=0.3s running=1.9s podReady=1.9s http200=2.2s url=2.9s controlPlaneReady=2.9s routed=2.9s routeAccepted=3.1s shell=5.0s explorer=5.0s cleanup=1648ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.2s scheduled=0.4s running=2.0s podReady=2.0s http200=2.3s url=3.0s controlPlaneReady=3.0s routed=3.0s routeAccepted=3.2s shell=4.9s explorer=5.0s cleanup=1630ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.3s running=2.0s podReady=2.0s http200=2.5s url=2.8s controlPlaneReady=2.8s routed=2.9s routeAccepted=3.1s shell=4.8s explorer=4.8s cleanup=1632ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.3s running=2.2s podReady=2.2s http200=2.5s url=2.9s controlPlaneReady=2.9s routed=3.0s routeAccepted=3.2s shell=4.9s explorer=4.9s cleanup=2190ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.2s scheduled=0.4s running=1.8s podReady=1.8s url=2.4s controlPlaneReady=2.4s routed=2.5s http200=2.6s routeAccepted=2.7s shell=4.7s explorer=4.7s cleanup=1560ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s routeAccepted=1.8s shell=3.7s explorer=3.7s cleanup=1614ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s routeAccepted=1.9s shell=3.5s explorer=3.5s cleanup=1620ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s routeAccepted=1.9s shell=3.6s explorer=3.7s cleanup=1635ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.7s routeAccepted=1.9s shell=2.9s explorer=3.4s cleanup=1628ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.8s routeAccepted=1.9s shell=3.6s explorer=3.6s cleanup=1656ms pulled=false
+[eduide-cloud cold 1/5] ok created=0.2s scheduled=0.4s running=2.1s podReady=2.1s http200=2.4s url=2.9s controlPlaneReady=2.9s routed=3.0s routeAccepted=3.2s shell=4.8s explorer=4.8s cleanup=2293ms pulled=false
+[eduide-cloud cold 2/5] ok created=0.3s scheduled=0.4s running=2.7s podReady=2.7s http200=3.0s url=3.5s controlPlaneReady=3.5s routed=3.6s routeAccepted=3.7s shell=5.4s explorer=5.4s cleanup=1622ms pulled=false
+[eduide-cloud cold 3/5] ok created=0.2s scheduled=0.4s running=3.2s podReady=3.2s http200=3.5s url=3.9s controlPlaneReady=3.9s routed=4.1s routeAccepted=4.2s shell=5.9s explorer=5.9s cleanup=1626ms pulled=false
+[eduide-cloud cold 4/5] ok created=0.2s scheduled=0.4s running=2.2s podReady=2.2s http200=2.6s url=3.0s controlPlaneReady=3.0s routed=3.0s routeAccepted=3.2s shell=4.9s explorer=4.9s cleanup=1644ms pulled=false
+[eduide-cloud cold 5/5] ok created=0.6s scheduled=0.8s running=2.5s podReady=2.5s http200=2.8s url=3.4s controlPlaneReady=3.4s routed=3.4s routeAccepted=3.6s shell=5.4s explorer=5.5s cleanup=1547ms pulled=false
+[eduide-cloud warm 1/5] ok created=0.3s url=1.5s controlPlaneReady=1.5s routed=1.8s http200=1.9s routeAccepted=2.0s shell=3.6s explorer=3.6s cleanup=1625ms pulled=false
+[eduide-cloud warm 2/5] ok created=0.3s url=1.5s controlPlaneReady=1.5s routed=1.8s http200=1.8s routeAccepted=2.0s shell=3.6s explorer=3.6s cleanup=1618ms pulled=false
+[eduide-cloud warm 3/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s routeAccepted=1.9s shell=3.6s explorer=3.6s cleanup=1645ms pulled=false
+[eduide-cloud warm 4/5] ok created=0.2s url=1.5s controlPlaneReady=1.5s routed=1.7s http200=1.8s routeAccepted=1.9s shell=3.5s explorer=3.5s cleanup=1641ms pulled=false
+[eduide-cloud warm 5/5] ok created=0.2s url=1.4s controlPlaneReady=1.4s routed=1.7s http200=1.7s routeAccepted=1.9s shell=3.5s explorer=3.5s cleanup=1761ms pulled=false

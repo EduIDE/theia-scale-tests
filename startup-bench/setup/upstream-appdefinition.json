@@ -1,0 +1,29 @@
+{
+  "apiVersion": "theia.cloud/v1beta10",
+  "kind": "AppDefinition",
+  "metadata": {
+    "name": "bench-java-17",
+    "labels": {
+      "app.kubernetes.io/part-of": "startup-bench"
+    }
+  },
+  "spec": {
+    "downlinkLimit": 30000,
+    "image": "ghcr.io/eduide/eduide/java-17-standalone@sha256:efe68ad83f6133bcc5b274f8f4da3f5fd3dcfde4c063423f7c536bca0fbf2515",
+    "imagePullPolicy": "IfNotPresent",
+    "ingressHostnamePrefixes": ["*.webview."],
+    "ingressname": "theia-cloud-demo-ws-ingress",
+    "limitsCpu": "2",
+    "limitsMemory": "3000M",
+    "maxInstances": 50,
+    "minInstances": 0,
+    "mountPath": "/home/project",
+    "name": "bench-java-17",
+    "port": 3000,
+    "requestsCpu": "500m",
+    "requestsMemory": "500M",
+    "timeout": 30,
+    "uid": 101,
+    "uplinkLimit": 30000
+  }
+}

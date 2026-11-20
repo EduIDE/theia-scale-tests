@@ -1,0 +1,74 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "DaemonSet",
+  "metadata": {
+    "name": "bench-prepull",
+    "labels": {
+      "app": "bench-prepull"
+    }
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "app": "bench-prepull"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "bench-prepull"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "registry.k8s.io/pause:3.10",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "pause",
+            "resources": {
+              "requests": {
+                "cpu": "1m",
+                "memory": "8Mi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "initContainers": [
+          {
+            "command": ["sh", "-c", "true"],
+            "image": "ghcr.io/eduide/eduide/java-17-standalone@sha256:efe68ad83f6133bcc5b274f8f4da3f5fd3dcfde4c063423f7c536bca0fbf2515",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "pull",
+            "resources": {
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          },
+          {
+            "name": "pull-oauth2-proxy",
+            "image": "quay.io/oauth2-proxy/oauth2-proxy:v7.12.0",
+            "imagePullPolicy": "IfNotPresent",
+            "command": ["/bin/oauth2-proxy", "--version"],
+            "resources": {
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "terminationGracePeriodSeconds": 30
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+[upstream cold 1/20] ok created=0.3s url=0.5s controlPlaneReady=0.5s scheduled=0.5s running=3.2s podReady=3.2s http200=3.5s routed=4.2s shell=6.9s explorer=7.0s cleanup=1621ms pulled=true
+[upstream cold 2/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=3.0s podReady=3.0s routed=4.2s http200=5.2s shell=7.2s explorer=7.3s cleanup=1636ms pulled=true
+[upstream cold 3/20] ok created=0.3s scheduled=0.4s url=0.4s controlPlaneReady=0.4s running=2.9s podReady=2.9s http200=3.2s routed=4.2s shell=6.1s explorer=6.2s cleanup=1754ms pulled=true
+[upstream cold 4/20] ok created=0.2s scheduled=0.4s url=0.4s controlPlaneReady=0.4s running=2.8s podReady=2.8s http200=3.1s routed=4.2s shell=6.1s explorer=6.2s cleanup=1769ms pulled=true
+[upstream cold 5/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=3.2s podReady=3.2s http200=3.5s routed=4.1s shell=6.3s explorer=6.8s cleanup=1759ms pulled=true
+[upstream cold 6/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=3.1s podReady=3.1s http200=3.4s routed=4.1s shell=6.1s explorer=6.2s cleanup=1561ms pulled=true
+[upstream cold 7/20] ok created=0.3s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=3.1s podReady=3.1s http200=3.4s routed=4.2s shell=6.0s explorer=6.3s cleanup=1602ms pulled=true
+[upstream cold 8/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=2.8s podReady=2.8s http200=3.1s routed=4.1s shell=6.0s explorer=6.0s cleanup=1659ms pulled=true
+[upstream cold 9/20] ok created=0.2s scheduled=0.3s url=0.3s controlPlaneReady=0.3s running=2.8s podReady=2.8s http200=3.2s routed=4.1s shell=6.0s explorer=6.2s cleanup=2349ms pulled=true
+[upstream cold 10/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=2.9s podReady=2.9s http200=3.3s routed=4.1s shell=6.0s explorer=6.1s cleanup=1616ms pulled=true
+[upstream cold 11/20] ok created=0.2s scheduled=0.3s url=0.3s controlPlaneReady=0.3s running=2.2s podReady=2.2s http200=2.9s routed=4.1s shell=6.0s explorer=6.1s cleanup=1692ms pulled=true
+[upstream cold 12/20] ok created=0.2s scheduled=0.4s url=0.4s controlPlaneReady=0.4s running=3.0s podReady=3.0s http200=3.4s routed=4.1s shell=6.3s explorer=6.3s cleanup=1737ms pulled=true
+[upstream cold 13/20] ok created=0.3s scheduled=0.4s url=0.5s controlPlaneReady=0.5s running=2.7s podReady=2.7s http200=3.0s routed=4.2s shell=6.2s explorer=6.4s cleanup=1765ms pulled=true
+[upstream cold 14/20] ok created=0.4s scheduled=0.4s url=0.5s controlPlaneReady=0.5s running=3.2s podReady=3.2s http200=3.5s routed=4.1s shell=6.1s explorer=6.2s cleanup=1731ms pulled=true
+[upstream cold 15/20] ok created=0.3s url=0.5s controlPlaneReady=0.5s scheduled=0.5s running=2.7s podReady=2.7s http200=3.2s routed=4.3s shell=6.3s explorer=6.4s cleanup=2331ms pulled=true
+[upstream cold 16/20] ok created=0.3s scheduled=0.4s url=0.5s controlPlaneReady=0.5s running=2.8s podReady=2.8s http200=3.1s routed=4.2s shell=6.5s explorer=6.7s cleanup=1655ms pulled=true
+[upstream cold 17/20] ok created=0.3s scheduled=0.4s url=0.5s controlPlaneReady=0.5s running=2.8s podReady=2.8s http200=3.2s routed=4.2s shell=6.3s explorer=6.4s cleanup=2324ms pulled=true
+[upstream cold 18/20] ok created=0.2s scheduled=0.3s url=0.3s controlPlaneReady=0.3s running=3.2s podReady=3.2s http200=3.5s routed=4.1s shell=6.1s explorer=6.2s cleanup=1761ms pulled=true
+[upstream cold 19/20] ok created=0.2s scheduled=0.3s url=0.4s controlPlaneReady=0.4s running=2.8s podReady=2.8s http200=3.0s routed=4.2s shell=6.0s explorer=6.1s cleanup=1020ms pulled=true
+[upstream cold 20/20] ok created=0.2s scheduled=0.3s url=0.3s controlPlaneReady=0.3s running=2.3s podReady=2.3s http200=3.0s routed=4.1s shell=6.0s explorer=6.1s cleanup=1667ms pulled=true
+[upstream warm 1/20] ok created=0.2s url=8.0s controlPlaneReady=8.0s routed=8.0s http200=8.2s shell=10.2s explorer=10.7s cleanup=nullms pulled=false
+[upstream warm 2/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=8.0s http200=8.2s shell=10.1s explorer=10.2s cleanup=nullms pulled=false
+[upstream warm 3/20] ok created=0.3s url=8.1s controlPlaneReady=8.1s routed=8.3s http200=8.4s shell=11.0s explorer=11.1s cleanup=2309ms pulled=false
+[upstream warm 4/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=8.0s http200=8.2s shell=10.1s explorer=10.2s cleanup=1602ms pulled=false
+[upstream warm 5/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.4s shell=10.4s explorer=10.7s cleanup=1808ms pulled=false
+[upstream warm 6/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=8.0s http200=8.2s shell=10.1s explorer=10.3s cleanup=2334ms pulled=false
+[upstream warm 7/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.2s http200=8.3s shell=10.1s explorer=10.4s cleanup=1682ms pulled=false
+[upstream warm 8/20] ok created=0.3s url=7.9s controlPlaneReady=7.9s routed=8.1s http200=8.2s shell=10.4s explorer=10.8s cleanup=2231ms pulled=false
+[upstream warm 9/20] ok created=0.4s url=8.1s controlPlaneReady=8.1s routed=8.3s http200=8.5s shell=10.3s explorer=10.5s cleanup=1830ms pulled=false
+[upstream warm 10/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=8.0s http200=8.2s shell=10.1s explorer=10.2s cleanup=1677ms pulled=false
+[upstream warm 11/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.2s shell=10.2s explorer=10.3s cleanup=1905ms pulled=false
+[upstream warm 12/20] ok created=0.2s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.2s shell=10.0s explorer=10.0s cleanup=2303ms pulled=false
+[upstream warm 13/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=7.9s http200=8.2s shell=10.1s explorer=10.5s cleanup=1243ms pulled=false
+[upstream warm 14/20] ok created=0.3s url=5.4s controlPlaneReady=5.4s routed=5.6s http200=5.8s shell=7.8s explorer=8.0s cleanup=2481ms pulled=false
+[upstream warm 15/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.3s shell=10.3s explorer=10.6s cleanup=1650ms pulled=false
+[upstream warm 16/20] ok created=0.4s url=8.1s controlPlaneReady=8.1s routed=8.2s http200=8.3s shell=10.6s explorer=11.5s cleanup=1851ms pulled=false
+[upstream warm 17/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.3s shell=10.4s explorer=10.7s cleanup=1672ms pulled=false
+[upstream warm 18/20] ok created=0.3s url=8.0s controlPlaneReady=8.0s routed=8.1s http200=8.3s shell=10.4s explorer=10.8s cleanup=1970ms pulled=false
+[upstream warm 19/20] ok created=0.3s url=7.9s controlPlaneReady=7.9s routed=8.1s http200=8.2s shell=10.0s explorer=10.5s cleanup=1680ms pulled=false
+[upstream warm 20/20] ok created=0.2s url=7.9s controlPlaneReady=7.9s routed=8.0s http200=8.2s shell=10.0s explorer=10.1s cleanup=2328ms pulled=false

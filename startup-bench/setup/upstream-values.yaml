@@ -1,0 +1,36 @@
+imagePullPolicy: IfNotPresent
+app:
+  id: startup-bench
+  name: Startup bench
+demoApplication:
+  install: false
+keycloak:
+  enable: true
+  authUrl: https://keycloak-test.aet.cit.tum.de/
+  realm: tum
+  clientId: eduide
+hosts:
+  usePaths: true
+  configuration:
+    baseHost: upstream.eduide.student.k8s.aet.cit.tum.de
+landingPage:
+  enabled: false
+operator:
+  eagerStart: true
+  sessionsPerUser: "100"
+service:
+  authToken: startup-bench
+ingress:
+  controller: nginx
+  ingressClassName: nginx
+  tls: false
+  certManagerAnnotations: false
+  instances:
+    configurationSnippets: []
+    annotations: {}
+  service:
+    annotations: {}
+monitor:
+  enable: false
+  activityTracker:
+    enable: false
