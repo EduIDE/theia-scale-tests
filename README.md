@@ -223,6 +223,11 @@ runner is enough.
 
 `ARTEMIS_USER` and `ARTEMIS_PWD` are declared as optional secrets. The `functional` project never touches Artemis, so a caller that does not have them can leave them out.
 
+## Startup bench
+
+[`startup-bench/`](startup-bench/README.md) compares how fast IDE sessions start on different control planes (Theia Cloud upstream, EduIDE Cloud, the Go control plane) with the same image, cold and from a warm pool.
+It creates session CRs directly with kubectl, so it needs cluster access instead of a Keycloak user.
+
 ## Development
 
 - Single User Playwright Tests are run using a Test Account for Keycloak, to change the Test User, change the environment variables in GitHub Secrets \

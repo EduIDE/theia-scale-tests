@@ -1,0 +1,54 @@
+{
+  "apiVersion": "eduide.github.io/v1alpha1",
+  "kind": "IDETemplate",
+  "metadata": {
+    "name": "bench-java-17",
+    "labels": {
+      "app.kubernetes.io/part-of": "startup-bench"
+    }
+  },
+  "spec": {
+    "displayName": "Startup bench (java-17-standalone)",
+    "env": [
+      {
+        "name": "THEIA",
+        "value": "1"
+      }
+    ],
+    "image": "ghcr.io/eduide/eduide/java-17-standalone@sha256:efe68ad83f6133bcc5b274f8f4da3f5fd3dcfde4c063423f7c536bca0fbf2515",
+    "injectableKeys": [
+      {
+        "maxLength": 2048,
+        "name": "GIT_USER",
+        "source": "UserName"
+      },
+      {
+        "maxLength": 2048,
+        "name": "GIT_MAIL",
+        "source": "UserEmail"
+      }
+    ],
+    "persistence": {
+      "allowed": ["none", "volume"],
+      "default": "none",
+      "mountPath": "/home/project"
+    },
+    "port": 3000,
+    "resources": {
+      "limits": {
+        "cpu": "2",
+        "memory": "3000M"
+      },
+      "requests": {
+        "cpu": "500m",
+        "memory": "500M"
+      }
+    },
+    "runAsUser": 101,
+    "timeouts": {
+      "idle": "60m",
+      "max": "24h",
+      "warning": "50m"
+    }
+  }
+}

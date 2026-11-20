@@ -1,0 +1,65 @@
+{
+  "apiVersion": "apps/v1",
+  "kind": "DaemonSet",
+  "metadata": {
+    "name": "bench-prepull",
+    "labels": {
+      "app": "bench-prepull"
+    }
+  },
+  "spec": {
+    "selector": {
+      "matchLabels": {
+        "app": "bench-prepull"
+      }
+    },
+    "template": {
+      "metadata": {
+        "labels": {
+          "app": "bench-prepull"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "image": "registry.k8s.io/pause:3.10",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "pause",
+            "resources": {
+              "requests": {
+                "cpu": "1m",
+                "memory": "8Mi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "dnsPolicy": "ClusterFirst",
+        "initContainers": [
+          {
+            "command": ["sh", "-c", "true"],
+            "image": "ghcr.io/eduide/eduide/java-17-standalone@sha256:efe68ad83f6133bcc5b274f8f4da3f5fd3dcfde4c063423f7c536bca0fbf2515",
+            "imagePullPolicy": "IfNotPresent",
+            "name": "pull",
+            "resources": {
+              "requests": {
+                "cpu": "10m",
+                "memory": "16Mi"
+              }
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File"
+          }
+        ],
+        "nodeSelector": {
+          "aet.cit.tum.de/pool": "eduide"
+        },
+        "restartPolicy": "Always",
+        "schedulerName": "default-scheduler",
+        "securityContext": {},
+        "terminationGracePeriodSeconds": 30
+      }
+    }
+  }
+}
