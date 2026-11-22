@@ -142,6 +142,7 @@ The suite targets EduIDE 3.0 (Go control plane, new landing page). The landing p
   ```
 
   The resource collector reads container CPU and memory from Prometheus cAdvisor metrics and stores them in `test-data/.../raw/resource-raw.csv`.
+  It selects session pods by the EduIDE 3.0 labels `eduide.github.io/component=session` and `eduide.github.io/template=<app>`; idle pool pods are left out, and the data bridge runs inside the IDE pod, so there are no separate sidecar pods to watch.
 
   If the benchmark setup is hard to reproduce from this cleaned test-suite branch, compare against the development branch `feature/benchmark-test3-ui-latency`, which contains the original local benchmark campaign state and debugging history.
 
