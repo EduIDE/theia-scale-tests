@@ -1,5 +1,9 @@
 import { test, expect, Page } from "@playwright/test";
-import { STATE_TEMPLATE as spec } from "../../fixtures/utils/catalog";
+import {
+  chooseStateTemplate,
+  TemplateSpec,
+} from "../../fixtures/utils/catalog";
+import { CloudService } from "../../fixtures/utils/service";
 import {
   checkTemplate,
   launchIde,
@@ -34,14 +38,21 @@ test.describe("Saved workspace", () => {
   let started: Started | undefined;
   let held: Held[] = [];
   let saved = false;
+  let spec: TemplateSpec;
 
   test.beforeAll(async ({ browser }, testInfo) => {
-    held = await acquire("platform-state", "platform", PLATFORM_SLOTS);
+    // The same lock as the remaining templates: this spec may pick one of them.
+    held = await acquire("platform-templates", "platform", PLATFORM_SLOTS);
+    const service = await CloudService.fromStorage(
+      process.env.LANDINGPAGE_URL!,
+    );
+    const templates = await service.listTemplates();
+    spec = chooseStateTemplate(templates);
+    saved =
+      templates.find((t) => t.name === spec.app)?.defaultPersistence ===
+      "volume";
     started = await startSession(browser, spec, testInfo, { keepOpen: true });
     launched = started;
-    saved =
-      (await started.service.listTemplates()).find((t) => t.name === spec.app)
-        ?.defaultPersistence === "volume";
   });
 
   test.afterAll(async () => {
@@ -136,12 +147,9 @@ test.describe("Saved workspace", () => {
     await launched.page.context().close();
 
     await started!.service.stopTemplate(spec);
-    // Starting while the old session still counts as running is refused.
-    await expect
-      .poll(async () => (await started!.service.sessionsOf(spec)).length, {
-        timeout: 3 * 60_000,
-      })
-      .toBe(0);
+    // The list hides a session that is being deleted, so this holds at once. A
+    // new launch makes a new session even while the old pod is still ending.
+    expect(await started!.service.sessionsOf(spec)).toHaveLength(0);
 
     launched = await launchIde(
       browser,

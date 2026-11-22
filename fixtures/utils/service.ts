@@ -25,7 +25,31 @@ interface Display {
 export interface SessionInfo {
   name: string;
   template: string;
+  phase: "Pending" | "Starting" | "Ready" | "Failed";
+  workspace?: string;
   display?: Display;
+}
+
+/** A Failed session is listed but a launch ignores it, so it does not occupy the template. */
+export const activeSessions = (sessions: SessionInfo[]) =>
+  sessions.filter((s) => s.phase !== "Failed");
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+/** A delete of something that is already gone has reached its goal. */
+export async function ignoreNotFound(request: Promise<unknown>) {
+  try {
+    await request;
+  } catch (e) {
+    if (!(e instanceof ApiError && e.status === 404)) throw e;
+  }
 }
 
 export interface WorkspaceInfo {
@@ -87,19 +111,45 @@ export async function fetchConfig(
  * Items of exactly this template and variant, never of a sibling variant. A
  * session or workspace does not name its variant, only the landing page's
  * display title does, which is the variant's name. Without variant metadata
- * the template alone decides.
+ * the template alone decides. With it, a variant id it does not list matches
+ * nothing instead of everything.
  */
 export function matchByVariant<
   T extends { template: string; display?: Display },
 >(items: T[], spec: SpecKey, templates: Template[]): T[] {
-  const variant = templates
-    .find((t) => t.name === spec.app)
-    ?.variants?.find((v) => v.id === spec.template)?.name;
+  const variants = templates.find((t) => t.name === spec.app)?.variants;
+  const hasVariants = variants !== undefined && variants.length > 0;
+  const name = variants?.find((v) => v.id === spec.template)?.name;
+  if (hasVariants && name === undefined) return [];
   return items.filter(
     (i) =>
       i.template === spec.app &&
-      (variant === undefined || i.display?.title === variant),
+      (name === undefined || i.display?.title === name),
   );
+}
+
+/**
+ * The workspaces a spec's launch used: the ones its sessions run on when there
+ * are sessions, else those matching template and variant. `clean` is false when
+ * the template has workspaces but none could be matched, so a reset cannot say
+ * that it left nothing behind.
+ */
+export function workspacesToReset(
+  workspaces: WorkspaceInfo[],
+  sessions: SessionInfo[],
+  spec: SpecKey,
+  templates: Template[],
+): { matched: WorkspaceInfo[]; clean: boolean } {
+  const used = new Set(
+    matchByVariant(sessions, spec, templates).flatMap((s) =>
+      s.workspace ? [s.workspace] : [],
+    ),
+  );
+  const matched = used.size
+    ? workspaces.filter((w) => used.has(w.name))
+    : matchByVariant(workspaces, spec, templates);
+  const candidates = workspaces.some((w) => w.template === spec.app);
+  return { matched, clean: matched.length > 0 || !candidates };
 }
 
 /** Position of a template among the tiles of the landing page, -1 if it has none. */
@@ -107,20 +157,32 @@ export function tileIndex(templates: Template[], name: string): number {
   return templates.filter((t) => t.listed).findIndex((t) => t.name === name);
 }
 
-/** Why a spec cannot run in this environment, undefined when it can. */
+/**
+ * Why a spec cannot run in this environment, undefined when it can. Only an
+ * environment without the template skips: a variant the template does not
+ * list is a bug of the catalog and throws. Without variant metadata sibling
+ * variants share one launch key, session and workspace, so only the first spec
+ * of a template in `catalog` is available.
+ */
 export function unavailableReason(
   templates: Template[],
   spec: SpecKey,
+  catalog: SpecKey[],
 ): string | undefined {
   const template = templates.find((t) => t.name === spec.app);
   if (!template) return `${spec.app} is not offered by this environment`;
   if (!template.listed) return `${spec.app} has no tile on the landing page`;
-  // Without variant metadata the id cannot be checked, the launch tells.
-  if (
-    template.variants?.length &&
-    !template.variants.some((v) => v.id === spec.template)
-  ) {
-    return `${spec.app} has no project template ${spec.template}`;
+  if (template.variants?.length) {
+    if (!template.variants.some((v) => v.id === spec.template)) {
+      throw new Error(
+        `${spec.app} offers no project template ${spec.template}, fix the catalog`,
+      );
+    }
+    return undefined;
+  }
+  const first = catalog.find((c) => c.app === spec.app);
+  if (first && first.template !== spec.template) {
+    return `${spec.app} lists no variants, so only ${first.template} can run`;
   }
   return undefined;
 }
@@ -255,7 +317,10 @@ export class CloudService {
           return undefined;
         }
       })();
-      throw new Error(`${what} failed: ${res.status}${code ? ` ${code}` : ""}`);
+      throw new ApiError(
+        `${what} failed: ${res.status}${code ? ` ${code}` : ""}`,
+        res.status,
+      );
     }
     // A delete answers 204 without a body.
     return (text ? JSON.parse(text) : undefined) as T;
@@ -274,11 +339,15 @@ export class CloudService {
   }
 
   async stopSession(name: string): Promise<void> {
-    await this.call("Stop session", "DELETE", `/sessions/${name}`);
+    await ignoreNotFound(
+      this.call("Stop session", "DELETE", `/sessions/${name}`),
+    );
   }
 
   async deleteWorkspace(name: string): Promise<void> {
-    await this.call("Delete workspace", "DELETE", `/workspaces/${name}`);
+    await ignoreNotFound(
+      this.call("Delete workspace", "DELETE", `/workspaces/${name}`),
+    );
   }
 
   /** The running sessions of exactly this template and variant. */
@@ -290,7 +359,7 @@ export class CloudService {
     );
   }
 
-  /** Stops the sessions of a template and returns how many were running. */
+  /** Stops the sessions of a template, Failed ones included, and returns how many there were. */
   async stopTemplate(spec: SpecKey): Promise<number> {
     const sessions = await this.sessionsOf(spec);
     for (const s of sessions) await this.stopSession(s.name);
@@ -299,20 +368,18 @@ export class CloudService {
 
   /**
    * Removes the workspaces of a template, so the next launch copies the
-   * template into an empty one. The server stops a session on them first.
-   * Returns false when they could not be removed in time.
+   * template into an empty one. The server stops a session on them first and
+   * answers once they are gone. Returns false when the template has workspaces
+   * but none could be matched to the spec, which leaves old files behind.
    */
-  async resetWorkspace(spec: SpecKey, timeoutMs = 90_000): Promise<boolean> {
-    const templates = await this.listTemplates();
-    const left = async () =>
-      matchByVariant(await this.listWorkspaces(), spec, templates);
-    const workspaces = await left();
-    for (const w of workspaces) await this.deleteWorkspace(w.name);
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      if ((await left()).length === 0) return true;
-      await new Promise((r) => setTimeout(r, 3000));
-    }
-    return false;
+  async resetWorkspace(spec: SpecKey): Promise<boolean> {
+    const { matched, clean } = workspacesToReset(
+      await this.listWorkspaces(),
+      await this.listSessions(),
+      spec,
+      await this.listTemplates(),
+    );
+    for (const w of matched) await this.deleteWorkspace(w.name);
+    return clean;
   }
 }

@@ -12,6 +12,10 @@ The first target is https://e2e.eduide.student.k8s.aet.cit.tum.de.
 - `fixtures/utils/catalog.ts`: spec shape kept. `app` is a 3.0 template name, `template` a variant id (sent as `data.TEMPLATE`). `unavailableReason` skips a spec when the environment does not offer the template or variant.
 - `pages/landing/LandingPage.ts`: no login button, the page signs in at once. `login` opens the page itself and keeps the empty `kc_idp_hint` route and the credential origin allowlist. Logged in is the avatar, logout is the Sign out link in its menu. Tiles are found by `data-testid`, with an index fallback over the listed templates until the landing page with test ids is deployed. The pick dialog radios are found by `data-testid` or `input[name=variant][value=id]`.
 - Dropped without replacement: the ephemeral flag from the config (the badge and the status bar follow `defaultPersistence`), `buildSystems` from the config, `serviceAuthToken`.
+- Skips: only a template the environment does not offer (or that has no tile) skips. A variant the template does not list fails, it is a catalog bug. Without variant metadata siblings share launch key, session and workspace, so only the first catalog spec of a template is available.
+- Failed sessions are listed but ignored by a launch, so they do not count as running. Stopping still deletes them, a 404 on a delete counts as done.
+- The workspace spec picks its template from what the environment offers (`chooseStateTemplate`) and shares the lock of the remaining templates.
+- `scripts/monitor-benchmark-resources.sh` selects pods by the `eduide.github.io/` labels. There are no separate sidecar pods in 3.0, so that part is gone.
 - Platform specs: landing (tile per listed template with badge, pick dialog, logout), workspace (skips the restart test when the template has no saved workspace by default).
 
 ## Open points (not verifiable without a test login)

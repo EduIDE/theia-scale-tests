@@ -97,15 +97,27 @@ export class LandingPage {
     const landingUrl = process.env.LANDINGPAGE_URL!;
     const keycloak = new URL((await fetchConfig(landingUrl)).keycloak.url)
       .origin;
-    await this.page.goto(landingUrl);
+    // The redirect to Keycloak runs after the load, so the commit is enough.
+    await this.page.goto(landingUrl, { waitUntil: "commit" });
     // Credentials only go to the Keycloak this landing page names, or to a host
     // listed in LOGIN_HOST_ALLOWLIST (comma separated origins).
-    await this.page.waitForURL(
-      (url) => allowedLoginOrigins(keycloak).includes(url.origin),
-      { timeout: 20_000 },
-    );
+    const allowed = allowedLoginOrigins(keycloak);
+    await this.page.waitForURL((url) => allowed.includes(url.origin), {
+      timeout: 20_000,
+    });
+    // The page can navigate on between the wait and the typing, so each field
+    // checks again right before it is filled.
+    const guard = () => {
+      const { origin } = new URL(this.page.url());
+      if (!allowed.includes(origin)) {
+        throw new Error(`Refusing to type credentials on ${origin}`);
+      }
+    };
+    guard();
     await this.page.locator("#username").fill(username, t);
+    guard();
     await this.page.locator("#password").fill(password, t);
+    guard();
     await this.page
       .getByRole("button", { name: "Sign in", exact: true })
       .click(t);
@@ -151,9 +163,25 @@ export class LandingPage {
    */
   async waitForIdeUrl(timeoutMs = 8 * 60_000) {
     const landing = new URL(process.env.LANDINGPAGE_URL!).origin;
-    await this.page.waitForURL((url) => url.origin !== landing, {
-      timeout: timeoutMs,
-    });
+    // A failed launch keeps the page on the launch view with an alert, which
+    // would otherwise show up as a timeout.
+    const alert = this.page.locator(".alert.danger");
+    const failed = alert
+      .first()
+      .waitFor({ state: "visible", timeout: timeoutMs })
+      .then(async () => {
+        throw new Error(
+          `The launch failed: ${await alert.first().innerText()}`,
+        );
+      });
+    // The loser of the race ends with the page, nobody awaits it then.
+    failed.catch(() => undefined);
+    await Promise.race([
+      this.page.waitForURL((url) => url.origin !== landing, {
+        timeout: timeoutMs,
+      }),
+      failed,
+    ]);
     await this.page
       .waitForURL(/.*#\/home\/project/, { timeout: 60_000 })
       .catch(() => undefined);

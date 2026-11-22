@@ -1,6 +1,7 @@
 import { test as setup, chromium } from "@playwright/test";
 import { LandingPage } from "../../pages/landing/LandingPage";
 import { CloudService } from "../../fixtures/utils/service";
+import { SESSION_FILE } from "../../fixtures/utils/auth-files";
 import { TestInfo } from "@playwright/test";
 import fs from "fs";
 import path from "path";
@@ -45,7 +46,14 @@ setup("Start " + instances + " instances", async ({}, testInfo) => {
     return setupIDE(benchTargetApp, testInfo, i);
   });
 
-  await Promise.all(setupPromises);
+  const urls = await Promise.all(setupPromises);
+  // One account and template give one idempotent session however often it is
+  // launched, so the instances would be one IDE and the load a fraction of it.
+  if (testInfo.project.name !== "local" && new Set(urls).size !== urls.length) {
+    throw new Error(
+      `${instances} instances of ${benchTargetApp} share ${new Set(urls).size} session(s): one account gets one session per template and variant`,
+    );
+  }
 });
 
 async function setupIDE(
@@ -65,7 +73,7 @@ async function setupIDE(
 
   if (testInfo.project.name !== "local" && !isAuthDisabled) {
     context = await browser.newContext({
-      storageState: ".auth/keycloak_user.json",
+      storageState: SESSION_FILE,
     });
   } else {
     context = await browser.newContext();
@@ -94,7 +102,10 @@ async function setupIDE(
       setupTimeoutMs,
     });
     await landingPage.waitForIdeUrl(setupTimeoutMs);
-    debugLog("scale-setup", "ide url reached", { identifier, url: page.url() });
+    debugLog("scale-setup", "ide url reached", {
+      identifier,
+      url: page.url().split("#")[0],
+    });
   } else {
     await page.goto(`/`);
     await page.waitForURL(/.*#\/home\/project/, { timeout: setupTimeoutMs });
@@ -103,7 +114,10 @@ async function setupIDE(
   await page.waitForLoadState("domcontentloaded");
 
   const ideURL = page.url();
-  debugLog("scale-setup", "persist ide url", { identifier, ideURL });
+  debugLog("scale-setup", "persist ide url", {
+    identifier,
+    ideURL: ideURL.split("#")[0],
+  });
   const testDataDir = path.join(process.cwd(), "test-data/scale");
   if (!fs.existsSync(testDataDir)) {
     fs.mkdirSync(testDataDir, { recursive: true });
@@ -112,6 +126,7 @@ async function setupIDE(
     path.join(testDataDir, "ide-url-" + identifier + ".txt"),
     ideURL,
   );
+  return ideURL;
 
   //await context.close();
   //await browser.close();

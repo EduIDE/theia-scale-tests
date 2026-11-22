@@ -6,6 +6,8 @@
  * run time, see unavailableReason. Commands and expected output come from the
  * template sources in EduIDE/images/<lang>/templates/<template>/.vscode/tasks.json.
  */
+import { Template, unavailableReason } from "./service";
+
 export interface Task {
   label: string;
   command: string;
@@ -133,12 +135,36 @@ export const BASE_TEMPLATES: Record<string, TemplateSpec> = {
   javascript: find("javascript-standalone", "node"),
 };
 
-/** Its session is restarted and its experience level changed, so nothing else may use it. */
-export const STATE_TEMPLATE = find("go-standalone", "go");
-
 export const EXTRA_TEMPLATES = TEMPLATES.filter(
-  (t) => !Object.values(BASE_TEMPLATES).includes(t) && t !== STATE_TEMPLATE,
+  (t) => !Object.values(BASE_TEMPLATES).includes(t),
 );
+
+/**
+ * The spec the workspace spec restarts and changes the experience level of,
+ * chosen from what the environment offers: a Java template with a saved
+ * workspace first, then any saved one, then any. A base template is never
+ * taken, the other specs work in its session. Throws when nothing fits.
+ */
+export function chooseStateTemplate(templates: Template[]): TemplateSpec {
+  const offered = EXTRA_TEMPLATES.filter((spec) => {
+    try {
+      return unavailableReason(templates, spec, TEMPLATES) === undefined;
+    } catch {
+      return false;
+    }
+  });
+  const rank = (spec: TemplateSpec) => {
+    const saved =
+      templates.find((t) => t.name === spec.app)?.defaultPersistence ===
+      "volume";
+    return /^java-.*-standalone$/.test(spec.app) && saved ? 0 : saved ? 1 : 2;
+  };
+  const [best] = [...offered].sort((a, b) => rank(a) - rank(b));
+  if (!best) {
+    throw new Error("No template of the catalog fits the workspace spec");
+  }
+  return best;
+}
 
 function find(app: string, template: string): TemplateSpec {
   const spec = TEMPLATES.find((t) => t.app === app && t.template === template);

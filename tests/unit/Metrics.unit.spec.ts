@@ -6,15 +6,21 @@ import {
   metricFileName,
   recordMetric,
 } from "../../fixtures/utils/metrics";
+import { chooseStateTemplate } from "../../fixtures/utils/catalog";
 import {
+  activeSessions,
+  ApiError,
   decodeJwt,
+  ignoreNotFound,
   matchByVariant,
   parseConfig,
   pkcePair,
+  SessionInfo,
   Template,
   tileIndex,
   tokenExpiresSoon,
   unavailableReason,
+  workspacesToReset,
 } from "../../fixtures/utils/service";
 import { createHash } from "crypto";
 
@@ -107,14 +113,111 @@ test("tileIndex counts listed templates only, in API order", () => {
   expect(tileIndex(templates, "missing")).toBe(-1);
 });
 
-test("unavailableReason names why a spec cannot run", () => {
+test("unavailableReason skips a missing template and fails a catalog bug", () => {
+  const catalog = [
+    { app: "java-17-standalone", template: "maven" },
+    { app: "java-17-standalone", template: "gradle" },
+    { app: "go-standalone", template: "go" },
+    { app: "go-standalone", template: "other" },
+    { app: "java-17", template: "maven" },
+  ];
   const reason = (app: string, id: string) =>
-    unavailableReason(templates, { app, template: id });
+    unavailableReason(templates, { app, template: id }, catalog);
   expect(reason("java-17-standalone", "gradle")).toBeUndefined();
-  expect(reason("go-standalone", "go")).toBeUndefined();
-  expect(reason("java-17-standalone", "bazel")).toContain("bazel");
+  // The template exists but not the variant: a bug of the catalog, no skip.
+  expect(() => reason("java-17-standalone", "bazel")).toThrow(/bazel/);
   expect(reason("java-17", "maven")).toContain("no tile");
   expect(reason("rust-standalone", "cargo")).toContain("not offered");
+  // Without variant metadata only the first spec of the template is available.
+  expect(reason("go-standalone", "go")).toBeUndefined();
+  expect(reason("go-standalone", "other")).toContain("only go");
+});
+
+test("activeSessions leaves out Failed sessions", () => {
+  const s = (name: string, phase: SessionInfo["phase"]) => ({
+    name,
+    template: "x",
+    phase,
+  });
+  expect(
+    activeSessions([s("a", "Failed"), s("b", "Ready"), s("c", "Pending")]).map(
+      (i) => i.name,
+    ),
+  ).toEqual(["b", "c"]);
+});
+
+test("a variant the template does not list matches nothing", () => {
+  const items = [
+    { template: "java-17-standalone", display: { title: "Maven" } },
+    { template: "java-17-standalone" },
+  ];
+  const none = { app: "java-17-standalone", template: "" };
+  expect(matchByVariant(items, none, templates)).toEqual([]);
+});
+
+test("workspacesToReset follows the session, then the title, and says when it cannot match", () => {
+  const ws = (name: string, title?: string) => ({
+    name,
+    template: "java-17-standalone",
+    display: title ? { title } : undefined,
+  });
+  const spec = { app: "java-17-standalone", template: "gradle" };
+  const workspaces = [ws("w-1", "Maven"), ws("w-2", "Gradle"), ws("w-3")];
+  const session = {
+    name: "s",
+    template: "java-17-standalone",
+    phase: "Ready" as const,
+    workspace: "w-3",
+    display: { title: "Gradle" },
+  };
+  const names = (r: ReturnType<typeof workspacesToReset>) =>
+    r.matched.map((w) => w.name);
+  expect(
+    names(workspacesToReset(workspaces, [session], spec, templates)),
+  ).toEqual(["w-3"]);
+  const byTitle = workspacesToReset(workspaces, [], spec, templates);
+  expect(names(byTitle)).toEqual(["w-2"]);
+  expect(byTitle.clean).toBe(true);
+  // Workspaces of the template exist, but none carries the variant's title.
+  const unmatched = workspacesToReset([ws("w-3")], [], spec, templates);
+  expect(unmatched.matched).toEqual([]);
+  expect(unmatched.clean).toBe(false);
+  expect(workspacesToReset([], [], spec, templates).clean).toBe(true);
+});
+
+test("ignoreNotFound swallows a 404 and nothing else", async () => {
+  await ignoreNotFound(Promise.reject(new ApiError("gone", 404)));
+  await expect(
+    ignoreNotFound(Promise.reject(new ApiError("down", 500))),
+  ).rejects.toThrow("down");
+  await expect(ignoreNotFound(Promise.reject(new Error("x")))).rejects.toThrow(
+    "x",
+  );
+});
+
+test("chooseStateTemplate prefers a saved Java template and never a base one", () => {
+  const t = (name: string, volume: boolean): Template => ({
+    ...template(name, true),
+    defaultPersistence: volume ? "volume" : "none",
+  });
+  expect(
+    chooseStateTemplate([
+      t("go-standalone", true),
+      t("java-17-standalone", true),
+      t("java-25-standalone", true),
+    ]).app,
+  ).toBe("java-25-standalone");
+  expect(
+    chooseStateTemplate([
+      t("go-standalone", true),
+      t("java-25-standalone", false),
+    ]).app,
+  ).toBe("go-standalone");
+  expect(chooseStateTemplate([t("java-25-standalone", false)]).app).toBe(
+    "java-25-standalone",
+  );
+  // Only the base template is offered: nothing fits.
+  expect(() => chooseStateTemplate([t("java-17-standalone", true)])).toThrow();
 });
 
 test("parseConfig keeps what the suite needs and rejects the rest", () => {

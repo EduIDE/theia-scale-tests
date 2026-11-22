@@ -1,8 +1,8 @@
 import { Browser, Page, test, TestInfo } from "@playwright/test";
-import { BASE_TEMPLATES, TemplateSpec } from "./catalog";
+import { BASE_TEMPLATES, TEMPLATES, TemplateSpec } from "./catalog";
 import { launchIde, LaunchedIde } from "./launch";
 import { Held, takeLock, takeSlot } from "./locks";
-import { CloudService, unavailableReason } from "./service";
+import { activeSessions, CloudService, unavailableReason } from "./service";
 
 /**
  * Sessions the functional specs may hold at the same time, and the same for the
@@ -48,14 +48,20 @@ export async function startSession(
 ): Promise<Started> {
   const service = await CloudService.fromStorage(process.env.LANDINGPAGE_URL!);
   // Environments differ in what they offer, a missing template is no failure.
-  const reason = unavailableReason(await service.listTemplates(), spec);
+  const reason = unavailableReason(
+    await service.listTemplates(),
+    spec,
+    TEMPLATES,
+  );
   test.skip(reason !== undefined, reason);
 
-  const owned = (await service.sessionsOf(spec)).length === 0;
+  // A Failed session is listed but a launch ignores it, it does not count.
+  const running = async () => activeSessions(await service.sessionsOf(spec));
+  const owned = (await running()).length === 0;
   if (owned && !(await service.resetWorkspace(spec).catch(() => false))) {
     testInfo.annotations.push({
       type: "workspace-not-reset",
-      description: `${spec.app} / ${spec.template}: the old workspace could not be removed, template files may be left over`,
+      description: `${spec.app} / ${spec.template}: the old workspace could not be removed or matched, template files may be left over`,
     });
   }
 
@@ -70,7 +76,7 @@ export async function startSession(
     if (spec.app === "c-standalone") {
       await recordMakefileToolsPrompt(launched.page, testInfo);
     }
-    if ((await service.sessionsOf(spec)).length === 0) {
+    if ((await running()).length === 0) {
       throw new Error(
         `Launched ${spec.app} / ${spec.template}, but no session of it is listed`,
       );

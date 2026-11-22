@@ -112,8 +112,11 @@ KUBECTL_ARGS+=(-n "$NAMESPACE")
 
 PROMETHEUS_RAW_PATH="/api/v1/namespaces/${PROM_NAMESPACE}/services/http:${PROM_SERVICE}:9090/proxy/api/v1/query"
 
-BASELINE_IDE_PODS="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "app.kubernetes.io/component=session,theia-cloud.io/app-definition=${TARGET_APP}" -o name 2>/dev/null || true)"
-BASELINE_SIDECAR_PODS="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "theia-cloud.io/sidecar" -o name 2>/dev/null || true)"
+# A failing kubectl here must stop the monitor, otherwise it records nothing for the whole run.
+BASELINE_IDE_PODS="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "eduide.github.io/component=session,eduide.github.io/session,eduide.github.io/template=${TARGET_APP}" -o name)" || {
+  echo "kubectl could not list the session pods of ${TARGET_APP}" >&2
+  exit 1
+}
 
 declare -A LAST_RECORDED_SAMPLE_TS=()
 
@@ -126,25 +129,17 @@ contains_line() {
   grep -Fxq "$needle" <<<"$haystack"
 }
 
+# EduIDE 3.0 runs the agent sidecar as a container of the IDE pod, so there are no separate sidecar pods to find.
+# Only pods with a session label: a pooled idle pod has none until a session claims it.
 current_targets() {
-  local ide_now sidecar_now targets=""
-  ide_now="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "app.kubernetes.io/component=session,theia-cloud.io/app-definition=${TARGET_APP}" -o name 2>/dev/null || true)"
+  local ide_now targets=""
+  ide_now="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "eduide.github.io/component=session,eduide.github.io/session,eduide.github.io/template=${TARGET_APP}" -o name 2>/dev/null || true)"
   while IFS= read -r pod; do
     [[ -z "$pod" ]] && continue
     if ! contains_line "$BASELINE_IDE_PODS" "$pod"; then
       targets+="${pod#pod/},ide"$'\n'
     fi
   done <<<"$ide_now"
-
-  if [[ "$ARCHITECTURE" == "external" ]]; then
-    sidecar_now="$(kubectl "${KUBECTL_ARGS[@]}" get pod -l "theia-cloud.io/sidecar" -o name 2>/dev/null || true)"
-    while IFS= read -r pod; do
-      [[ -z "$pod" ]] && continue
-      if ! contains_line "$BASELINE_SIDECAR_PODS" "$pod"; then
-        targets+="${pod#pod/},sidecar"$'\n'
-      fi
-    done <<<"$sidecar_now"
-  fi
 
   printf '%s' "$targets"
 }
