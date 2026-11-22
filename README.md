@@ -7,7 +7,7 @@
 
 ---
 
-This repository provides E2E integration tests for the [Theia Cloud IDE](https://theia-cloud.io). It uses Playwright to simulate real world usage of Online IDE's in large classroom settings.
+This repository provides E2E integration tests for EduIDE 3.0 (Theia based IDEs started by the EduIDE control plane). It uses Playwright to simulate real world usage of Online IDE's in large classroom settings.
 
 ## Information
 
@@ -44,7 +44,7 @@ Where the functional suite runs:
 
 GitHub: Actions, "Functional Theia Tests", "Run workflow", type the hostname. Pushes and pull requests use the repository variable `LANDINGPAGE_URL`, which points at the e2e environment.
 
-The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalone` apps (`c`, `go`, `java-17`, `java-25`, `javascript`, `python`, `rust`), each with a Saved or Temporary badge, and a build system picker for apps with several templates. The Artemis apps (`java-17`, ...) are hidden on the landing page and only start from Artemis.
+The suite targets EduIDE 3.0 (Go control plane, new landing page). The landing page signs in at once (no login button) and shows one tile per listed template from `GET /api/v1/templates`, each with a Saved or Temporary badge. A template with variants opens a dialog to pick the project template (Maven, Gradle, ...) or an empty project. In the suite a spec's `app` is the template name (`java-17-standalone`) and its `template` the id of a variant, which a launch sends as `data.TEMPLATE`. Unlisted templates (the Artemis ones) only start from Artemis. What an environment offers is read at run time: a spec whose template or variant the environment does not offer is skipped with the reason. The landing page serves `/config.json` (Keycloak url, realm, client and the API base), which the suite reads instead of the old `config.js`.
 
 ## Run Tests
 
@@ -157,7 +157,7 @@ The suite targets EduIDE chart 3.0: the landing page offers the `<lang>-standalo
 | benchmark                   | Language server latency, see above                                                                                                                                                | by hand         |
 | scale-setup, scale-teardown | Not meant to be run on their own, dependencies are set                                                                                                                            |                 |
 
-`functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). Each spec file launches the session it needs and stops it again, if this run started it. A run holds at most five sessions: three for the functional specs, two for the platform specs. Spec files of one base template (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) take turns, using lock files in `test-data/locks` that global setup clears at the start of a run. A session that was already running (a leftover or another run) is used but never stopped, and a session is started in a fresh workspace: the workspace of the template is removed first, so the template copy and the template tasks are tested on a new workspace. Sessions are stopped through the Theia Cloud service REST API (logging out of the landing page does not stop them); the service calls are plain `fetch` with the ID token of the stored login, never a browser context, so a trace can not contain tokens.
+`functional` and `platform` share one test user with a per-user session limit (operator `sessionsPerUser`, 10 on e2e). Each spec file launches the session it needs and stops it again, if this run started it. A run holds at most five sessions: three for the functional specs, two for the platform specs. Spec files of one base template (`c-standalone`/make, `java-17-standalone`/maven, `python-standalone`, `rust-standalone`, `javascript-standalone`/node) take turns, using lock files in `test-data/locks` that global setup clears at the start of a run. A session that was already running (a leftover or another run) is used but never stopped, and a session is started in a fresh workspace: the workspace of the template is removed first, so the template copy and the template tasks are tested on a new workspace. Sessions are stopped through the EduIDE API, `DELETE /api/v1/sessions/{name}` (logging out of the landing page does not stop them); the API calls are plain `fetch` with an access token that is fetched from the SSO cookies of the stored login, never a browser context, so a trace can not contain tokens. A session or workspace does not name its variant, so the suite tells variants apart by the display title the landing page sets, which is the variant's name.
 
 Two runs against one environment at the same time are not safe: they use the same user, so the same workspaces and sessions per app and template. The `concurrency` group of `functional-tests.yml` queues runs of one repository only. When EduIDE-deployment calls the workflow, the group lives in that repository, so a pull request run here can overlap the run after a deploy. Each run stays within five sessions, so the per-user limit holds, but a template that both runs launch is one shared session. Keep manual runs away from deploys.
 
@@ -171,7 +171,7 @@ Two runs against one environment at the same time are not safe: they use the sam
 
 ### Login
 
-The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots to the report, and the report is public, so nothing that types credentials is a test. Traces are off in CI because they record every request with its cookies and tokens; set `PW_TRACE=1` to keep traces of failed tests locally. Credentials are only typed on the Keycloak host the landing page config names (or an origin in `LOGIN_HOST_ALLOWLIST`, comma separated). A failed login throws an error that names the step and the page without its query string. The landing page redirects with a `kc_idp_hint` to the TUM IdP, so the login reopens the Keycloak URL without the hint to use Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.
+The Keycloak login runs in Playwright's global setup (`fixtures/utils/global-login.ts`), not in a test, and stores the session in `.auth/`. A failing test attaches snapshots to the report, and the report is public, so nothing that types credentials is a test. Traces are off in CI because they record every request with its cookies and tokens; set `PW_TRACE=1` to keep traces of failed tests locally. Credentials are only typed on the Keycloak host the landing page config names (or an origin in `LOGIN_HOST_ALLOWLIST`, comma separated). A failed login throws an error that names the step and the page without its query string. The landing page redirects to Keycloak as soon as it loads, and Keycloak forwards to the TUM IdP, so the login adds an empty `kc_idp_hint` to that auth request to get Keycloak's own form (the test account is a local Keycloak user). A second login feeds the logout test, because logging out ends that Keycloak session. The Artemis user logs in there too, only when `--project=artemis` is given. Global setup is skipped for `--project=unit` and `--project=local`.
 
 ### Metrics
 
@@ -232,7 +232,7 @@ runner is enough.
   ```none
   *.functional.spec.ts
   ```
-- Specs that need the landing page and the Theia Cloud service use `*.platform.spec.ts`
+- Specs that need the landing page and the EduIDE API use `*.platform.spec.ts`
 - All scalable tests (that can only be run on a scalable supported instance) have the following file format:
   ```none
   *.scale.spec.ts

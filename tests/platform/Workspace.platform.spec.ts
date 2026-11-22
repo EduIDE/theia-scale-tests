@@ -7,7 +7,6 @@ import {
   runInTerminal,
 } from "../../fixtures/utils/launch";
 import { Held } from "../../fixtures/utils/locks";
-import { CloudConfig } from "../../fixtures/utils/service";
 import {
   PLATFORM_SLOTS,
   Started,
@@ -15,7 +14,6 @@ import {
   release,
   startSession,
 } from "../../fixtures/utils/sessions";
-import { LandingPage } from "../../pages/landing/LandingPage";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWelcomeView } from "../../pages/ide/theia-pom/theia-welcome-view";
 
@@ -35,16 +33,15 @@ test.describe("Saved workspace", () => {
   let launched: LaunchedIde;
   let started: Started | undefined;
   let held: Held[] = [];
-  let cfg: CloudConfig;
+  let saved = false;
 
   test.beforeAll(async ({ browser }, testInfo) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    cfg = await new LandingPage(page).config();
-    await page.close();
     held = await acquire("platform-state", "platform", PLATFORM_SLOTS);
     started = await startSession(browser, spec, testInfo, { keepOpen: true });
     launched = started;
+    saved =
+      (await started.service.listTemplates()).find((t) => t.name === spec.app)
+        ?.defaultPersistence === "volume";
   });
 
   test.afterAll(async () => {
@@ -63,12 +60,8 @@ test.describe("Saved workspace", () => {
   });
 
   test("Status bar shows the workspace mode of the app", async () => {
-    const app = cfg.additionalApps.find(
-      (a) => a.serviceAuthToken === spec.app,
-    )!;
-    const ephemeral = app.ephemeral ?? cfg.useEphemeralStorage;
     await expect(launched.page.locator(modeItem)).toContainText(
-      ephemeral ? "Temporary workspace" : "Saved workspace",
+      saved ? "Saved workspace" : "Temporary workspace",
       { timeout: 60_000 },
     );
   });
@@ -136,6 +129,7 @@ test.describe("Saved workspace", () => {
   });
 
   test("Files survive a session restart", async ({ browser }, testInfo) => {
+    test.skip(!saved, "the template has no saved workspace by default");
     const marker = `persisted-${Date.now()}`;
     const terminal = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     await runInTerminal(terminal, `echo ${marker} > e2e-persist.txt && sync`);
@@ -149,7 +143,13 @@ test.describe("Saved workspace", () => {
       })
       .toBe(0);
 
-    launched = await launchIde(browser, spec, testInfo, "restart");
+    launched = await launchIde(
+      browser,
+      started!.service,
+      spec,
+      testInfo,
+      "restart",
+    );
     const after = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     const { output } = await runInTerminal(after, "cat e2e-persist.txt");
     expect(output).toContain(marker);

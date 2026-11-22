@@ -1,36 +1,45 @@
 import { createHash, randomBytes } from "crypto";
 import fs from "fs";
-import { TemplateSpec } from "./catalog";
 import { SESSION_FILE } from "./auth-files";
 
-/** The subset of window.theiaCloudConfig (served as /config.js) used here. */
-export interface CloudConfig {
-  serviceUrl: string;
-  serviceAuthToken: string;
-  keycloakAuthUrl: string;
-  keycloakRealm: string;
-  keycloakClientId: string;
-  useEphemeralStorage: boolean;
-  additionalApps: {
-    serviceAuthToken: string;
-    appName: string;
-    visible?: boolean;
-    ephemeral?: boolean;
-    buildSystems?: { id: string; label: string }[];
-  }[];
+/** The part of the landing page's /config.json used here. */
+export interface LandingConfig {
+  apiBaseUrl: string;
+  keycloak: { url: string; realm: string; clientId: string };
 }
 
-export interface SessionSpec {
-  name?: string;
-  appDefinition?: string;
-  workspace?: string;
-  envVars?: Record<string, string>;
+/** The part of the 3.0 API's Template used here. */
+export interface Template {
+  name: string;
+  displayName: string;
+  listed: boolean;
+  defaultPersistence: "none" | "volume";
+  injectableKeys: string[];
+  variants?: { id: string; name: string }[];
+}
+
+interface Display {
+  title?: string;
+}
+
+export interface SessionInfo {
+  name: string;
+  template: string;
+  display?: Display;
 }
 
 export interface WorkspaceInfo {
-  name?: string;
-  appDefinition?: string;
+  name: string;
+  template: string;
+  display?: Display;
 }
+
+/**
+ * In the suite a spec's `app` is the 3.0 template name (java-17-standalone) and
+ * its `template` the id of a variant, which is what a launch sends as
+ * data.TEMPLATE.
+ */
+export type SpecKey = { app: string; template: string };
 
 export interface Cookie {
   name: string;
@@ -49,46 +58,71 @@ export function pkcePair() {
   return { verifier, challenge };
 }
 
-/**
- * The name the landing page gives the workspace of an app and template, a port
- * of createWorkspaceName in EduIDE-Landing-Page (src/launch.ts). It identifies
- * the session and the workspace of one template exactly.
- */
-export function workspaceName(
-  app: string,
-  template: string,
-  username: string,
-): string {
-  const segment = (value: string, fallback: string) => {
-    const clean = value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "");
-    return (clean.length > 0 ? clean : fallback).substring(0, 12);
-  };
-  const appKey = `${app}-${template}`;
-  let hash = 0;
-  for (const ch of `${username}-${appKey}-playground`) {
-    hash = (hash << 5) - hash + ch.charCodeAt(0);
-    hash |= 0;
+/** Reads the landing page's /config.json, throws on a shape the suite cannot use. */
+export function parseConfig(raw: unknown): LandingConfig {
+  const c = raw as Partial<LandingConfig> | undefined;
+  if (
+    !c ||
+    typeof c.apiBaseUrl !== "string" ||
+    !c.keycloak?.url ||
+    !c.keycloak.realm ||
+    !c.keycloak.clientId
+  ) {
+    throw new Error(
+      "config.json needs apiBaseUrl and keycloak.url, keycloak.realm, keycloak.clientId",
+    );
   }
-  const id = Math.abs(hash).toString(16).padStart(8, "0");
-  return `ws-${segment(appKey, "app")}-playground-${segment(username, "user")}-${id}`;
+  return { apiBaseUrl: c.apiBaseUrl, keycloak: c.keycloak };
 }
 
-/** Sessions of exactly this app and template, never of a sibling template. */
-export function matchSessions(
-  sessions: SessionSpec[],
-  spec: Pick<TemplateSpec, "app" | "template">,
-  username: string,
-): SessionSpec[] {
-  const wanted = workspaceName(spec.app, spec.template, username);
-  return sessions.filter(
-    (s) =>
-      s.appDefinition === spec.app &&
-      (s.workspace === wanted || s.envVars?.TEMPLATE === spec.template),
+export async function fetchConfig(
+  landingUrl = process.env.LANDINGPAGE_URL!,
+): Promise<LandingConfig> {
+  const res = await fetch(new URL("/config.json", landingUrl));
+  if (!res.ok) throw new Error(`GET /config.json failed: ${res.status}`);
+  return parseConfig(await res.json());
+}
+
+/**
+ * Items of exactly this template and variant, never of a sibling variant. A
+ * session or workspace does not name its variant, only the landing page's
+ * display title does, which is the variant's name. Without variant metadata
+ * the template alone decides.
+ */
+export function matchByVariant<
+  T extends { template: string; display?: Display },
+>(items: T[], spec: SpecKey, templates: Template[]): T[] {
+  const variant = templates
+    .find((t) => t.name === spec.app)
+    ?.variants?.find((v) => v.id === spec.template)?.name;
+  return items.filter(
+    (i) =>
+      i.template === spec.app &&
+      (variant === undefined || i.display?.title === variant),
   );
+}
+
+/** Position of a template among the tiles of the landing page, -1 if it has none. */
+export function tileIndex(templates: Template[], name: string): number {
+  return templates.filter((t) => t.listed).findIndex((t) => t.name === name);
+}
+
+/** Why a spec cannot run in this environment, undefined when it can. */
+export function unavailableReason(
+  templates: Template[],
+  spec: SpecKey,
+): string | undefined {
+  const template = templates.find((t) => t.name === spec.app);
+  if (!template) return `${spec.app} is not offered by this environment`;
+  if (!template.listed) return `${spec.app} has no tile on the landing page`;
+  // Without variant metadata the id cannot be checked, the launch tells.
+  if (
+    template.variants?.length &&
+    !template.variants.some((v) => v.id === spec.template)
+  ) {
+    return `${spec.app} has no project template ${spec.template}`;
+  }
+  return undefined;
 }
 
 export function cookieHeader(cookies: Cookie[], url: URL): string {
@@ -106,22 +140,23 @@ export function cookieHeader(cookies: Cookie[], url: URL): string {
 }
 
 /**
- * Gets an ID token with the SSO cookies of a stored login: an authorization
- * code flow with PKCE, the way the landing page logs in. Plain fetch, not a
- * browser context, so that no Playwright trace can ever hold the cookies, the
- * code or the tokens.
+ * Gets an access token with the SSO cookies of a stored login: an authorization
+ * code flow with PKCE, the way the landing page logs in, and the access token
+ * is what it sends to the API. Plain fetch, not a browser context, so that no
+ * Playwright trace can ever hold the cookies, the code or the tokens.
  */
-async function fetchIdToken(
+async function fetchAccessToken(
   cookies: Cookie[],
-  cfg: CloudConfig,
+  cfg: LandingConfig,
   landingUrl: string,
 ): Promise<string> {
   const { verifier, challenge } = pkcePair();
   const redirectUri = new URL("/", landingUrl).toString();
-  const realm = `${cfg.keycloakAuthUrl.replace(/\/$/, "")}/realms/${cfg.keycloakRealm}/protocol/openid-connect`;
+  const { url, realm: name, clientId } = cfg.keycloak;
+  const realm = `${url.replace(/\/$/, "")}/realms/${name}/protocol/openid-connect`;
   const authUrl = new URL(`${realm}/auth`);
   authUrl.search = new URLSearchParams({
-    client_id: cfg.keycloakClientId,
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: "code",
     scope: "openid",
@@ -143,7 +178,7 @@ async function fetchIdToken(
     method: "POST",
     body: new URLSearchParams({
       grant_type: "authorization_code",
-      client_id: cfg.keycloakClientId,
+      client_id: clientId,
       code,
       redirect_uri: redirectUri,
       code_verifier: verifier,
@@ -152,7 +187,7 @@ async function fetchIdToken(
   if (!res.ok) {
     throw new Error(`Token request failed: ${res.status}`);
   }
-  return ((await res.json()) as { id_token: string }).id_token;
+  return ((await res.json()) as { access_token: string }).access_token;
 }
 
 /** True when the token has less than `marginS` seconds left. */
@@ -161,148 +196,121 @@ export function tokenExpiresSoon(jwt: string, marginS = 60, now = Date.now()) {
 }
 
 /**
- * Talks to the Theia Cloud service the way the landing page does, with the
- * ID token of the test user. The landing page keeps its token in memory, so a
- * fresh one is fetched from the SSO cookies of the stored login. This is the
- * only way to end a session: logging out of the landing page leaves it running
- * and counting against the per-user session limit.
+ * Talks to the EduIDE API the way the landing page does, with the access token
+ * of the test user. The landing page keeps its token in memory, so a fresh one
+ * is fetched from the SSO cookies of the stored login. This is the only way to
+ * end a session: logging out of the landing page leaves it running and
+ * counting against the per-user session limit.
  */
 export class CloudService {
-  /** Name the landing page uses for the user in workspace names. */
-  readonly username: string;
-  /** User of service requests, the e-mail as in the landing page. */
-  private readonly user: string;
-
   private constructor(
     private cookies: Cookie[],
-    private cfg: CloudConfig,
+    private cfg: LandingConfig,
     private landingUrl: string,
-    private idToken: string,
-  ) {
-    const claims = decodeJwt(idToken);
-    this.user = claims.email ?? claims.preferred_username;
-    this.username = claims.preferred_username ?? claims.email;
-  }
+    private token: string,
+  ) {}
 
-  static async fromCookies(
-    cookies: Cookie[],
-    cfg: CloudConfig,
-    landingUrl: string,
-  ) {
-    const token = await fetchIdToken(cookies, cfg, landingUrl);
+  static async fromCookies(cookies: Cookie[], landingUrl: string) {
+    const cfg = await fetchConfig(landingUrl);
+    const token = await fetchAccessToken(cookies, cfg, landingUrl);
     return new CloudService(cookies, cfg, landingUrl, token);
   }
 
-  static async fromStorage(
-    cfg: CloudConfig,
-    landingUrl: string,
-    file = SESSION_FILE,
-  ) {
+  static async fromStorage(landingUrl: string, file = SESSION_FILE) {
     const state = JSON.parse(fs.readFileSync(file, "utf8")) as {
       cookies: Cookie[];
     };
-    return CloudService.fromCookies(state.cookies, cfg, landingUrl);
+    return CloudService.fromCookies(state.cookies, landingUrl);
   }
 
   /** The token lives a few minutes, a spec can outlast it. */
   private async headers() {
-    if (tokenExpiresSoon(this.idToken)) {
-      this.idToken = await fetchIdToken(
+    if (tokenExpiresSoon(this.token)) {
+      this.token = await fetchAccessToken(
         this.cookies,
         this.cfg,
         this.landingUrl,
       );
     }
     return {
-      Authorization: `Bearer ${this.idToken}`,
+      Authorization: `Bearer ${this.token}`,
       "Content-Type": "application/json",
     };
   }
 
-  /**
-   * `what` names the call in errors: the path holds the e-mail of the user, and
-   * error text ends up in reports.
-   */
-  private async call<T>(
-    what: string,
-    method: string,
-    path: string,
-    body?: unknown,
-  ) {
-    const res = await fetch(`${this.cfg.serviceUrl}/service/${path}`, {
+  /** `what` names the call in errors, error text ends up in reports. */
+  private async call<T>(what: string, method: string, path: string) {
+    const base = new URL(this.cfg.apiBaseUrl, this.landingUrl).href;
+    const res = await fetch(`${base.replace(/\/$/, "")}${path}`, {
       method,
       headers: await this.headers(),
-      body: body === undefined ? undefined : JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`${what} failed: ${res.status}`);
-    // A stop or delete may answer with an empty body.
+    // Errors are problem+json, whose code is a fixed word and safe to report.
     const text = await res.text();
+    if (!res.ok) {
+      const code = (() => {
+        try {
+          return (JSON.parse(text) as { code?: string }).code;
+        } catch {
+          return undefined;
+        }
+      })();
+      throw new Error(`${what} failed: ${res.status}${code ? ` ${code}` : ""}`);
+    }
+    // A delete answers 204 without a body.
     return (text ? JSON.parse(text) : undefined) as T;
   }
 
-  private userPath(kind: "session" | "workspace") {
-    return `${kind}/${this.cfg.serviceAuthToken}/${encodeURIComponent(this.user)}`;
+  listTemplates(): Promise<Template[]> {
+    return this.call("List templates", "GET", "/templates");
   }
 
-  listSessions(): Promise<SessionSpec[]> {
-    return this.call("List sessions", "GET", this.userPath("session"));
+  listSessions(): Promise<SessionInfo[]> {
+    return this.call("List sessions", "GET", "/sessions");
   }
 
   listWorkspaces(): Promise<WorkspaceInfo[]> {
-    return this.call("List workspaces", "GET", this.userPath("workspace"));
+    return this.call("List workspaces", "GET", "/workspaces");
   }
 
   async stopSession(name: string): Promise<void> {
-    await this.call("Stop session", "DELETE", "session", {
-      kind: "sessionStopRequest",
-      appId: this.cfg.serviceAuthToken,
-      user: this.user,
-      sessionName: name,
-    });
+    await this.call("Stop session", "DELETE", `/sessions/${name}`);
   }
 
   async deleteWorkspace(name: string): Promise<void> {
-    await this.call("Delete workspace", "DELETE", "workspace", {
-      kind: "workspaceDeletionRequest",
-      appId: this.cfg.serviceAuthToken,
-      user: this.user,
-      workspaceName: name,
-    });
+    await this.call("Delete workspace", "DELETE", `/workspaces/${name}`);
   }
 
-  /** The running sessions of exactly this template. */
-  async sessionsOf(
-    spec: Pick<TemplateSpec, "app" | "template">,
-  ): Promise<SessionSpec[]> {
-    return matchSessions(await this.listSessions(), spec, this.username);
+  /** The running sessions of exactly this template and variant. */
+  async sessionsOf(spec: SpecKey): Promise<SessionInfo[]> {
+    return matchByVariant(
+      await this.listSessions(),
+      spec,
+      await this.listTemplates(),
+    );
   }
 
   /** Stops the sessions of a template and returns how many were running. */
-  async stopTemplate(
-    spec: Pick<TemplateSpec, "app" | "template">,
-  ): Promise<number> {
+  async stopTemplate(spec: SpecKey): Promise<number> {
     const sessions = await this.sessionsOf(spec);
-    for (const s of sessions) await this.stopSession(s.name!);
+    for (const s of sessions) await this.stopSession(s.name);
     return sessions.length;
   }
 
   /**
-   * Removes the workspace of a template, so the next launch copies the
-   * template into an empty one. Only call without a running session.
-   * Returns false when the workspace could not be removed in time.
+   * Removes the workspaces of a template, so the next launch copies the
+   * template into an empty one. The server stops a session on them first.
+   * Returns false when they could not be removed in time.
    */
-  async resetWorkspace(
-    spec: Pick<TemplateSpec, "app" | "template">,
-    timeoutMs = 90_000,
-  ): Promise<boolean> {
-    const name = workspaceName(spec.app, spec.template, this.username);
-    const exists = async () =>
-      (await this.listWorkspaces()).some((w) => w.name === name);
-    if (!(await exists())) return true;
-    await this.deleteWorkspace(name);
+  async resetWorkspace(spec: SpecKey, timeoutMs = 90_000): Promise<boolean> {
+    const templates = await this.listTemplates();
+    const left = async () =>
+      matchByVariant(await this.listWorkspaces(), spec, templates);
+    const workspaces = await left();
+    for (const w of workspaces) await this.deleteWorkspace(w.name);
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      if (!(await exists())) return true;
+      if ((await left()).length === 0) return true;
       await new Promise((r) => setTimeout(r, 3000));
     }
     return false;

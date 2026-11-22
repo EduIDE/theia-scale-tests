@@ -1,9 +1,8 @@
 import { Browser, Page, test, TestInfo } from "@playwright/test";
-import { LandingPage } from "../../pages/landing/LandingPage";
 import { BASE_TEMPLATES, TemplateSpec } from "./catalog";
 import { launchIde, LaunchedIde } from "./launch";
 import { Held, takeLock, takeSlot } from "./locks";
-import { CloudService } from "./service";
+import { CloudService, unavailableReason } from "./service";
 
 /**
  * Sessions the functional specs may hold at the same time, and the same for the
@@ -37,7 +36,7 @@ export interface Started extends LaunchedIde {
 }
 
 /**
- * Launches a template, in a fresh workspace if no session of it runs yet. A
+ * Launches a template variant, in a fresh workspace if no session of it runs yet. A
  * session that was already running (another run, or a leftover) is used but
  * never stopped by us, because it is not ours.
  */
@@ -47,14 +46,10 @@ export async function startSession(
   testInfo: TestInfo,
   opts: { keepOpen?: boolean; metricName?: string } = {},
 ): Promise<Started> {
-  const page = await browser.newPage();
-  await page.goto("/");
-  const cfg = await new LandingPage(page).config();
-  await page.close();
-  const service = await CloudService.fromStorage(
-    cfg,
-    process.env.LANDINGPAGE_URL!,
-  );
+  const service = await CloudService.fromStorage(process.env.LANDINGPAGE_URL!);
+  // Environments differ in what they offer, a missing template is no failure.
+  const reason = unavailableReason(await service.listTemplates(), spec);
+  test.skip(reason !== undefined, reason);
 
   const owned = (await service.sessionsOf(spec)).length === 0;
   if (owned && !(await service.resetWorkspace(spec).catch(() => false))) {
@@ -64,7 +59,13 @@ export async function startSession(
     });
   }
 
-  const launched = await launchIde(browser, spec, testInfo, opts.metricName);
+  const launched = await launchIde(
+    browser,
+    service,
+    spec,
+    testInfo,
+    opts.metricName,
+  );
   try {
     if (spec.app === "c-standalone") {
       await recordMakefileToolsPrompt(launched.page, testInfo);

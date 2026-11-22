@@ -1,5 +1,6 @@
 import { test as setup, chromium } from "@playwright/test";
 import { LandingPage } from "../../pages/landing/LandingPage";
+import { CloudService } from "../../fixtures/utils/service";
 import { TestInfo } from "@playwright/test";
 import fs from "fs";
 import path from "path";
@@ -81,13 +82,18 @@ async function setupIDE(
     });
     await page.goto("/");
     debugLog("scale-setup", "landing opened", { identifier, url: page.url() });
-    await landingPage.launch(language, process.env.BENCH_TARGET_TEMPLATE);
+    const service = await CloudService.fromStorage(
+      process.env.LANDINGPAGE_URL!,
+    );
+    await landingPage.launch(
+      { app: language, template: process.env.BENCH_TARGET_TEMPLATE },
+      await service.listTemplates(),
+    );
     debugLog("scale-setup", "waiting for ide url", {
       identifier,
-      pattern: ".*#/home/project",
       setupTimeoutMs,
     });
-    await page.waitForURL(/.*#\/home\/project/, { timeout: setupTimeoutMs });
+    await landingPage.waitForIdeUrl(setupTimeoutMs);
     debugLog("scale-setup", "ide url reached", { identifier, url: page.url() });
   } else {
     await page.goto(`/`);

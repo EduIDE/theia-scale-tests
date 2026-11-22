@@ -8,10 +8,13 @@ import {
 } from "../../fixtures/utils/metrics";
 import {
   decodeJwt,
-  workspaceName,
-  matchSessions,
+  matchByVariant,
+  parseConfig,
   pkcePair,
+  Template,
+  tileIndex,
   tokenExpiresSoon,
+  unavailableReason,
 } from "../../fixtures/utils/service";
 import { createHash } from "crypto";
 
@@ -60,33 +63,69 @@ test("pkce challenge is the S256 hash of the verifier", () => {
   );
 });
 
-test("matchSessions finds exactly one template, never a sibling", () => {
-  const user = "alice";
-  const maven = workspaceName("java-17-standalone", "maven", user);
-  const sessions = [
-    { name: "a", appDefinition: "java-17-standalone", workspace: maven },
-    {
-      name: "b",
-      appDefinition: "java-17-standalone",
-      envVars: { TEMPLATE: "gradle" },
-    },
-    { name: "c", appDefinition: "go-standalone" },
+const template = (
+  name: string,
+  listed: boolean,
+  variants?: { id: string; name: string }[],
+): Template => ({
+  name,
+  displayName: "Java 17",
+  listed,
+  defaultPersistence: "volume",
+  injectableKeys: ["TEMPLATE"],
+  variants,
+});
+const templates = [
+  template("java-17", false),
+  template("java-17-standalone", true, [
+    { id: "maven", name: "Maven" },
+    { id: "gradle", name: "Gradle" },
+  ]),
+  template("go-standalone", true),
+];
+
+test("matchByVariant finds exactly one variant, never a sibling", () => {
+  const items = [
+    { name: "a", template: "java-17-standalone", display: { title: "Maven" } },
+    { name: "b", template: "java-17-standalone", display: { title: "Gradle" } },
+    { name: "c", template: "go-standalone" },
+    { name: "d", template: "java-17", display: { title: "Maven" } },
   ];
-  const names = (app: string, template: string) =>
-    matchSessions(sessions, { app, template }, user).map((s) => s.name);
+  const names = (app: string, id: string) =>
+    matchByVariant(items, { app, template: id }, templates).map((i) => i.name);
   expect(names("java-17-standalone", "maven")).toEqual(["a"]);
   expect(names("java-17-standalone", "gradle")).toEqual(["b"]);
-  // No fallback to "every session of the app" for a session that says nothing.
-  expect(names("go-standalone", "go")).toEqual([]);
+  // Without variant metadata the template alone decides.
+  expect(names("go-standalone", "go")).toEqual(["c"]);
   expect(names("rust-standalone", "cargo")).toEqual([]);
 });
 
-test("workspaceName follows the landing page", () => {
-  const name = workspaceName("java-17-standalone", "maven", "Alice.Example");
-  expect(name).toMatch(/^ws-java-17-stan-playground-alice-exampl-[0-9a-f]{8}$/);
-  expect(
-    workspaceName("java-17-standalone", "gradle", "Alice.Example"),
-  ).not.toBe(name);
+test("tileIndex counts listed templates only, in API order", () => {
+  expect(tileIndex(templates, "java-17-standalone")).toBe(0);
+  expect(tileIndex(templates, "go-standalone")).toBe(1);
+  expect(tileIndex(templates, "java-17")).toBe(-1);
+  expect(tileIndex(templates, "missing")).toBe(-1);
+});
+
+test("unavailableReason names why a spec cannot run", () => {
+  const reason = (app: string, id: string) =>
+    unavailableReason(templates, { app, template: id });
+  expect(reason("java-17-standalone", "gradle")).toBeUndefined();
+  expect(reason("go-standalone", "go")).toBeUndefined();
+  expect(reason("java-17-standalone", "bazel")).toContain("bazel");
+  expect(reason("java-17", "maven")).toContain("no tile");
+  expect(reason("rust-standalone", "cargo")).toContain("not offered");
+});
+
+test("parseConfig keeps what the suite needs and rejects the rest", () => {
+  const keycloak = { url: "https://k/", realm: "tum", clientId: "eduide" };
+  expect(parseConfig({ apiBaseUrl: "/api/v1", keycloak, title: "x" })).toEqual({
+    apiBaseUrl: "/api/v1",
+    keycloak,
+  });
+  expect(() => parseConfig({ apiBaseUrl: "/api/v1" })).toThrow(/keycloak/);
+  // The old Theia Cloud config.js shape is not an EduIDE 3.0 config.
+  expect(() => parseConfig({ serviceUrl: "https://x", keycloak })).toThrow();
 });
 
 test("tokenExpiresSoon looks at the exp claim", () => {

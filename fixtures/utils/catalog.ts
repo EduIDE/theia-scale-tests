@@ -1,7 +1,10 @@
 /**
- * The apps and templates of EduIDE 3.0 as the landing page offers them.
- * Commands and expected output come from the template sources in
- * EduIDE/images/<lang>/templates/<template>/.vscode/tasks.json.
+ * The templates of EduIDE 3.0 and their variants as the landing page offers
+ * them. A spec's `app` is the name of a template in GET /templates and its
+ * `template` the id of one of its variants (the project template a launch
+ * sends as data.TEMPLATE). Which of them an environment offers is checked at
+ * run time, see unavailableReason. Commands and expected output come from the
+ * template sources in EduIDE/images/<lang>/templates/<template>/.vscode/tasks.json.
  */
 export interface Task {
   label: string;

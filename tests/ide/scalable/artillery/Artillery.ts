@@ -72,11 +72,8 @@ async function runVirtualStudent(
   } finally {
     if (--running === 0) {
       try {
-        await page.goto(process.env.LANDINGPAGE_URL!);
-        const cfg = await new LandingPage(page).config();
         const service = await CloudService.fromCookies(
           await page.context().cookies(),
-          cfg,
           process.env.LANDINGPAGE_URL!,
         );
         await service.stopTemplate({
@@ -92,14 +89,21 @@ async function runVirtualStudent(
 
 async function runStudent(page: Page, test: any, step: any) {
   await step("Artillery: Waiting for theia to be loaded", async () => {
-    await page.goto(process.env.LANDINGPAGE_URL!);
     const landingPage = new LandingPage(page);
     await landingPage.login(
       process.env.KEYCLOAK_USER!,
       process.env.KEYCLOAK_PWD!,
     );
-    await landingPage.launch("java-17-standalone", "maven");
-    await page.waitForURL(/.*#\/home\/project/);
+    await landingPage.waitForLoggedIn();
+    const service = await CloudService.fromCookies(
+      await page.context().cookies(),
+      process.env.LANDINGPAGE_URL!,
+    );
+    await landingPage.launch(
+      { app: "java-17-standalone", template: "maven" },
+      await service.listTemplates(),
+    );
+    await landingPage.waitForIdeUrl();
   });
 
   await virtualStudent(page, test);

@@ -1,10 +1,16 @@
 import { Locator, Page } from "@playwright/test";
 import { debugLog } from "../../fixtures/utils/debug-logging";
-import type { CloudConfig } from "../../fixtures/utils/service";
+import {
+  fetchConfig,
+  SpecKey,
+  Template,
+  tileIndex,
+} from "../../fixtures/utils/service";
 
 /**
- * The EduIDE landing page: login, one tile per offered app and, for apps with
- * several templates, a build system picker before the launch.
+ * The EduIDE landing page: it signs in at once (Keycloak login-required, no
+ * login button), shows one tile per listed template and, for a template with
+ * variants, a dialog to pick the project template before the launch.
  */
 export class LandingPage {
   page: Page;
@@ -13,80 +19,73 @@ export class LandingPage {
     this.page = page;
   }
 
+  /** The avatar: it shows once the page is signed in, its menu holds the sign out link. */
+  get account(): Locator {
+    return this.page
+      .getByTestId("account-button")
+      .or(this.page.locator('button.avatar[aria-label^="Account"]'));
+  }
+
+  get logoutLink(): Locator {
+    return this.page
+      .getByTestId("logoutButton")
+      .or(this.page.getByRole("link", { name: "Sign out" }));
+  }
+
+  /** All tiles currently shown, in page order. */
+  get tiles(): Locator {
+    return this.page.locator(".grid .card");
+  }
+
   /**
-   * The config the page runs on, read from the page itself. Right after the
-   * load the page can still be redirecting through Keycloak, which destroys the
-   * context under the read, so it is repeated until the page rests.
+   * The start button of a template's tile. Template displayNames are not
+   * unique ("Java 17" twice), so the name is no way to find it.
    */
-  async config(): Promise<CloudConfig> {
-    for (let attempt = 0; ; attempt++) {
-      try {
-        await this.page.waitForFunction(
-          () =>
-            (window as unknown as { theiaCloudConfig?: unknown })
-              .theiaCloudConfig,
-        );
-        return await this.page.evaluate(
-          () =>
-            (window as unknown as { theiaCloudConfig: CloudConfig })
-              .theiaCloudConfig,
-        );
-      } catch (e) {
-        if (
-          attempt >= 5 ||
-          !/context was destroyed|navigation/i.test(String(e))
-        )
-          throw e;
-        await this.page.waitForLoadState("domcontentloaded");
-      }
-    }
+  async tile(app: string, templates: Template[]): Promise<Locator> {
+    await this.page
+      .locator(".card-main")
+      .first()
+      .waitFor({ state: "attached" });
+    const byId = this.page.getByTestId(`launch-app-${app}`);
+    if ((await byId.count()) > 0) return byId;
+    // shortcut: index fallback until the landing page with data-testid is deployed, remove then
+    const index = tileIndex(templates, app);
+    if (index < 0) throw new Error(`${app} is not a listed template`);
+    return this.page.locator(".grid .card-main").nth(index);
   }
 
-  get loginButton(): Locator {
-    return this.page.getByTestId("loginButton");
+  /** Radio of a variant in the pick dialog, "" is the empty project. */
+  variantOption(id: string): Locator {
+    return this.page
+      .getByTestId(`variant-${id || "empty"}`)
+      .or(this.page.locator(`input[name="variant"][value="${id}"]`));
   }
 
-  get logoutButton(): Locator {
-    return this.page.getByTestId("logoutButton");
-  }
-
-  tile(app: string): Locator {
-    return this.page.getByTestId(`launch-app-${app}`);
-  }
-
-  /** "saved" or "temporary", as the badge on the tile says. */
-  badge(app: string): Locator {
-    return this.tile(app).locator("[data-persistence]");
-  }
-
-  /** Test ids of all tiles currently shown. */
-  async tileApps(): Promise<string[]> {
-    const tiles = this.page.locator('[data-testid^="launch-app-"]');
-    await tiles.first().waitFor({ state: "visible" });
-    const ids = await tiles.evaluateAll((nodes) =>
-      nodes.map((n) => n.getAttribute("data-testid")!),
-    );
-    return ids.map((id) => id.replace("launch-app-", ""));
+  get pickStart(): Locator {
+    return this.page
+      .getByTestId("pick-start")
+      .or(
+        this.page
+          .locator(".dialog")
+          .getByRole("button", { name: "Start", exact: true }),
+      );
   }
 
   /**
-   * Keycloak's own login form. The landing page redirects with a kc_idp_hint
-   * that sends users to the TUM IdP, which does not know the test account, so
-   * the same auth URL is opened again without the hint.
+   * Opens the landing page and logs in on Keycloak's own form. The realm
+   * forwards to the TUM IdP, which does not know the test account, so the auth
+   * URL gets an empty kc_idp_hint on the way out. Call it instead of a goto,
+   * the redirect to Keycloak happens during the load.
    */
   async login(username: string, password: string) {
     debugLog("landing", "start login", { hasUsername: Boolean(username) });
-    // The hint is dropped on the way out, so no second navigation races the
+    // The hint is added to the request itself, so no second navigation races the
     // redirect to the IdP.
     const authUrl = /\/protocol\/openid-connect\/auth/;
     await this.page.route(authUrl, (route) => {
-      // The rewritten URL matches again and must pass.
-      if (
-        new URL(route.request().url()).searchParams.get("kc_idp_hint") === ""
-      ) {
-        return route.continue();
-      }
       const url = new URL(route.request().url());
+      // The rewritten URL matches again and must pass.
+      if (url.searchParams.get("kc_idp_hint") === "") return route.continue();
       url.searchParams.set("kc_idp_hint", "");
       // A redirect, because the URL of a navigation request cannot be changed.
       return route.fulfill({
@@ -95,8 +94,10 @@ export class LandingPage {
       });
     });
     const t = { timeout: 20_000 };
-    const keycloak = new URL((await this.config()).keycloakAuthUrl).origin;
-    await this.loginButton.click(t);
+    const landingUrl = process.env.LANDINGPAGE_URL!;
+    const keycloak = new URL((await fetchConfig(landingUrl)).keycloak.url)
+      .origin;
+    await this.page.goto(landingUrl);
     // Credentials only go to the Keycloak this landing page names, or to a host
     // listed in LOGIN_HOST_ALLOWLIST (comma separated origins).
     await this.page.waitForURL(
@@ -112,35 +113,64 @@ export class LandingPage {
   }
 
   async logout() {
-    await this.logoutButton.click();
+    await this.account.click();
+    await this.logoutLink.click();
   }
 
   async waitForLoggedIn() {
-    await this.logoutButton.waitFor({ state: "visible", timeout: 60_000 });
+    await this.account.waitFor({ state: "visible", timeout: 60_000 });
   }
 
   /**
-   * Clicks the tile and, if the app has several templates, the build system.
-   * Without a template the first one the app offers is taken.
+   * Clicks the tile and, if the template has variants to pick, the variant and
+   * Start. Without a variant the first one the template offers is taken, as
+   * the dialog does.
    */
-  async launch(app: string, template?: string) {
-    const cfg = await this.config();
-    const systems =
-      cfg.additionalApps.find((a) => a.serviceAuthToken === app)
-        ?.buildSystems ?? [];
-    await this.tile(app).waitFor({ state: "visible" });
-    await this.tile(app).click();
-    if (systems.length > 1) {
-      await this.page
-        .getByTestId(`build-system-${template ?? systems[0].id}`)
-        .click();
+  async launch(
+    spec: Pick<SpecKey, "app"> & { template?: string },
+    templates: Template[],
+  ) {
+    const template = templates.find((t) => t.name === spec.app);
+    await (await this.tile(spec.app, templates)).click();
+    if (
+      template?.variants?.length &&
+      template.injectableKeys.includes("TEMPLATE")
+    ) {
+      await this.variantOption(
+        spec.template ?? template.variants[0].id,
+      ).check();
+      await this.pickStart.click();
     }
-    debugLog("landing", "launch clicked", { app, template });
+    debugLog("landing", "launch clicked", { ...spec });
   }
 
-  /** The session redirect, which can take minutes on a cold image pull. */
+  /**
+   * The redirect to the session, which can take minutes on a cold image pull.
+   * The session runs on its own host, so leaving the landing origin is the
+   * signal. Theia then adds #/home/project once the workspace is open.
+   */
   async waitForIdeUrl(timeoutMs = 8 * 60_000) {
-    await this.page.waitForURL(/.*#\/home\/project/, { timeout: timeoutMs });
+    const landing = new URL(process.env.LANDINGPAGE_URL!).origin;
+    await this.page.waitForURL((url) => url.origin !== landing, {
+      timeout: timeoutMs,
+    });
+    await this.page
+      .waitForURL(/.*#\/home\/project/, { timeout: 60_000 })
+      .catch(() => undefined);
+  }
+
+  /**
+   * True once the browser rests on a login prompt: not the landing page and
+   * not a step of the Keycloak redirects (auth endpoint, logout).
+   */
+  async waitForLoginPrompt(timeoutMs = 60_000) {
+    const landing = new URL(process.env.LANDINGPAGE_URL!).origin;
+    await this.page.waitForURL(
+      (url) =>
+        url.origin !== landing &&
+        !/\/protocol\/openid-connect\/(auth|logout)$/.test(url.pathname),
+      { timeout: timeoutMs },
+    );
   }
 
   setPage(page: Page) {
