@@ -57,7 +57,7 @@ export class LandingPage {
   /** Radio of a variant in the pick dialog, "" is the empty project. */
   variantOption(id: string): Locator {
     return this.page
-      .getByTestId(`variant-${id || "empty"}`)
+      .getByTestId(id ? `variant-${id}` : "pick-empty")
       .or(this.page.locator(`input[name="variant"][value="${id}"]`));
   }
 
@@ -162,6 +162,7 @@ export class LandingPage {
    * signal. Theia then adds #/home/project once the workspace is open.
    */
   async waitForIdeUrl(timeoutMs = 8 * 60_000) {
+    const deadline = Date.now() + timeoutMs;
     const landing = new URL(process.env.LANDINGPAGE_URL!).origin;
     // A failed launch keeps the page on the launch view with an alert, which
     // would otherwise show up as a timeout.
@@ -182,7 +183,10 @@ export class LandingPage {
       }),
       failed,
     ]);
-    await this.page.waitForURL(/.*#\/home\/project/, { timeout: 60_000 });
+    // Playwright reads a timeout of 0 as no limit, so a spent budget waits 1 ms.
+    await this.page.waitForURL(/.*#\/home\/project/, {
+      timeout: Math.max(1, deadline - Date.now()),
+    });
   }
 
   /**
