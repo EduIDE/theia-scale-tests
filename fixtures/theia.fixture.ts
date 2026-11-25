@@ -5,7 +5,7 @@ import { IDEPage } from "../pages/ide/IDEPage";
 import { ArtemisPage } from "../pages/artemis/ArtemisPage";
 import { LandingPage } from "../pages/landing/LandingPage";
 import { BASE_TEMPLATES } from "./utils/catalog";
-import { localUrl, sessionUrls } from "./utils/sessions";
+import { declaredSessions, localUrl, sessionUrls } from "./utils/sessions";
 
 interface TheiaFixtures {
   landingPage: LandingPage;
@@ -21,6 +21,10 @@ interface TheiaFixtures {
 /** Opens the IDE of a base template, which the spec's session hook launched. */
 export async function openBaseIde(browser: Browser, key: string) {
   const ideURL = localUrl(key) ?? sessionUrls[key];
+  // The afterAll hooks still ask for the IDE when the launch was skipped.
+  if (!ideURL && declaredSessions.has(key)) {
+    base.skip(true, `No session for "${key}", its launch was skipped`);
+  }
   if (!ideURL) {
     throw new Error(
       `No session for "${key}": call sessionForSpecs("${key}") in the spec`,

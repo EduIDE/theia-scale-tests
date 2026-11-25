@@ -17,6 +17,8 @@ const MAX_WAIT_MS = 20 * 60_000;
 
 /** Session URLs of the specs of this worker, by base template key. */
 export const sessionUrls: Record<string, string> = {};
+/** Keys whose spec block called sessionForSpecs, so a missing URL means its launch was skipped. */
+export const declaredSessions = new Set<string>();
 
 /** LOCAL_URL_<KEY> points at a local container instead of a launched session. */
 const LOCAL_KEYS: Record<string, string> = {
@@ -157,6 +159,7 @@ const open_: Record<string, { held: Held[]; started?: Started }> = {};
  */
 export function sessionForSpecs(key: string) {
   const spec = BASE_TEMPLATES[key];
+  declaredSessions.add(key);
   test.beforeAll(async ({ browser }, testInfo) => {
     test.setTimeout(35 * 60_000);
     if (localUrl(key)) return;
