@@ -70,6 +70,12 @@ async function setupIDE(
   let context;
   const isAuthDisabled = process.env.DISABLE_AUTH === "1";
   debugLog("scale-setup", "auth mode", { isAuthDisabled });
+  // The 3.0 API needs a token to list templates, so only local containers run without login.
+  if (isAuthDisabled && testInfo.project.name !== "local") {
+    throw new Error(
+      "DISABLE_AUTH=1 only works with the local project; EduIDE 3.0 needs a login",
+    );
+  }
 
   if (testInfo.project.name !== "local" && !isAuthDisabled) {
     context = await browser.newContext({

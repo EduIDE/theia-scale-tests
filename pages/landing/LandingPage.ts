@@ -149,7 +149,7 @@ export class LandingPage {
       template.injectableKeys.includes("TEMPLATE")
     ) {
       await this.variantOption(
-        spec.template ?? template.variants[0].id,
+        spec.template || template.variants[0].id,
       ).check();
       await this.pickStart.click();
     }
@@ -182,9 +182,7 @@ export class LandingPage {
       }),
       failed,
     ]);
-    await this.page
-      .waitForURL(/.*#\/home\/project/, { timeout: 60_000 })
-      .catch(() => undefined);
+    await this.page.waitForURL(/.*#\/home\/project/, { timeout: 60_000 });
   }
 
   /**
