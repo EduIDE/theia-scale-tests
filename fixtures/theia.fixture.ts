@@ -11,6 +11,8 @@ interface TheiaFixtures {
   landingPage: LandingPage;
   cApp: IDEPage;
   javaApp: IDEPage;
+  /** The session the language-independent IDE specs share. */
+  ideApp: IDEPage;
   pythonApp: IDEPage;
   rustApp: IDEPage;
   jsApp: IDEPage;
@@ -58,6 +60,11 @@ export const test = base.extend<TheiaFixtures>({
   },
   javaApp: async ({ browser }, use) => {
     const ide = await openBaseIde(browser, "java");
+    await use(ide);
+    await ide.page.close();
+  },
+  ideApp: async ({ browser }, use) => {
+    const ide = await openBaseIde(browser, "ide");
     await use(ide);
     await ide.page.close();
   },

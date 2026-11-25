@@ -130,6 +130,8 @@ export const TEMPLATES: TemplateSpec[] = [
 export const BASE_TEMPLATES: Record<string, TemplateSpec> = {
   c: find("c-standalone", "make"),
   java: find("java-17-standalone", "maven"),
+  // Editor, search, terminal and Git specs: a Java template, which every environment offers.
+  ide: find("java-25-standalone", "maven"),
   python: find("python-standalone", "python"),
   rust: find("rust-standalone", "cargo"),
   javascript: find("javascript-standalone", "node"),

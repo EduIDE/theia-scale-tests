@@ -196,17 +196,28 @@ test("ignoreNotFound swallows a 404 and nothing else", async () => {
 });
 
 test("chooseStateTemplate prefers a saved Java template and never a base one", () => {
+  // Java templates offer both variants, so gradle is free next to the base maven.
   const t = (name: string, volume: boolean): Template => ({
-    ...template(name, true),
+    ...template(
+      name,
+      true,
+      name.startsWith("java-")
+        ? [
+            { id: "maven", name: "Maven" },
+            { id: "gradle", name: "Gradle" },
+          ]
+        : undefined,
+    ),
     defaultPersistence: volume ? "volume" : "none",
   });
+  // A saved Java template wins over Go, and maven of both is a base template.
   expect(
     chooseStateTemplate([
       t("go-standalone", true),
       t("java-17-standalone", true),
       t("java-25-standalone", true),
-    ]).app,
-  ).toBe("java-25-standalone");
+    ]),
+  ).toMatchObject({ app: "java-17-standalone", template: "gradle" });
   expect(
     chooseStateTemplate([
       t("go-standalone", true),
@@ -216,8 +227,9 @@ test("chooseStateTemplate prefers a saved Java template and never a base one", (
   expect(chooseStateTemplate([t("java-25-standalone", false)]).app).toBe(
     "java-25-standalone",
   );
-  // Only the base template is offered: nothing fits.
-  expect(() => chooseStateTemplate([t("java-17-standalone", true)])).toThrow();
+  expect(chooseStateTemplate([t("java-25-standalone", true)]).template).toBe(
+    "gradle",
+  );
 });
 
 test("parseConfig keeps what the suite needs and rejects the rest", () => {

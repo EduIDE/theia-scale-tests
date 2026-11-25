@@ -121,7 +121,8 @@ export class IDEPage {
     );
     expect(await fileDialog.isVisible()).toBe(true);
     await this.theiaApp.page.locator("#theia-dialog-shell").press("Enter");
-    expect(await fileDialog.isVisible()).toBe(false);
+    // The dialog closes a moment after Enter, so wait instead of checking at once.
+    await fileDialog.waitForElementState("hidden");
   }
 
   async createNewFolder(folderPath: string = "project"): Promise<void> {
@@ -138,7 +139,8 @@ export class IDEPage {
       .locator(".theia-input")
       .fill(folderPath);
     await this.theiaApp.page.locator("#theia-dialog-shell").press("Enter");
-    expect(await fileDialog.isVisible()).toBe(false);
+    // The dialog closes a moment after Enter, so wait instead of checking at once.
+    await fileDialog.waitForElementState("hidden");
   }
 
   async createAndOpenWorkspace(workspacePath: string): Promise<void> {

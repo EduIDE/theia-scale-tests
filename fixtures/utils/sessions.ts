@@ -24,6 +24,7 @@ export const declaredSessions = new Set<string>();
 const LOCAL_KEYS: Record<string, string> = {
   c: "C",
   java: "JAVA",
+  ide: "JAVA",
   python: "PYTHON",
   rust: "RUST",
   javascript: "JS",
