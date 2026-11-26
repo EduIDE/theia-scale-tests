@@ -47,7 +47,13 @@ test.describe("Saved workspace", () => {
       process.env.LANDINGPAGE_URL!,
     );
     const templates = await service.listTemplates();
-    spec = chooseStateTemplate(templates);
+    const chosen = chooseStateTemplate(templates);
+    // Like a missing template elsewhere: the environment decides what runs.
+    test.skip(
+      !chosen,
+      "No template of this environment fits the workspace spec",
+    );
+    spec = chosen!;
     saved =
       templates.find((t) => t.name === spec.app)?.defaultPersistence ===
       "volume";

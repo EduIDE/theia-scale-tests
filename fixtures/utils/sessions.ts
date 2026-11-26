@@ -163,9 +163,10 @@ export function sessionForSpecs(key: string) {
   declaredSessions.add(key);
   test.beforeAll(async ({ browser }, testInfo) => {
     test.setTimeout(35 * 60_000);
-    if (localUrl(key)) return;
+    // Local containers take turns too: specs of one key share one instance.
     const held = await acquire(key, "functional", FUNCTIONAL_SLOTS);
     open_[key] = { held };
+    if (localUrl(key)) return;
     open_[key].started = await startSession(browser, spec, testInfo);
     sessionUrls[key] = open_[key].started!.url;
   });

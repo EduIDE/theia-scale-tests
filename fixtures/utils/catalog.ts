@@ -145,9 +145,11 @@ export const EXTRA_TEMPLATES = TEMPLATES.filter(
  * The spec the workspace spec restarts and changes the experience level of,
  * chosen from what the environment offers: a Java template with a saved
  * workspace first, then any saved one, then any. A base template is never
- * taken, the other specs work in its session. Throws when nothing fits.
+ * taken, the other specs work in its session. Undefined when nothing fits.
  */
-export function chooseStateTemplate(templates: Template[]): TemplateSpec {
+export function chooseStateTemplate(
+  templates: Template[],
+): TemplateSpec | undefined {
   const offered = EXTRA_TEMPLATES.filter((spec) => {
     try {
       return unavailableReason(templates, spec, TEMPLATES) === undefined;
@@ -161,11 +163,7 @@ export function chooseStateTemplate(templates: Template[]): TemplateSpec {
       "volume";
     return /^java-.*-standalone$/.test(spec.app) && saved ? 0 : saved ? 1 : 2;
   };
-  const [best] = [...offered].sort((a, b) => rank(a) - rank(b));
-  if (!best) {
-    throw new Error("No template of the catalog fits the workspace spec");
-  }
-  return best;
+  return [...offered].sort((a, b) => rank(a) - rank(b))[0];
 }
 
 function find(app: string, template: string): TemplateSpec {

@@ -224,12 +224,16 @@ test("chooseStateTemplate prefers a saved Java template and never a base one", (
       t("java-25-standalone", false),
     ]).app,
   ).toBe("go-standalone");
-  expect(chooseStateTemplate([t("java-25-standalone", false)]).app).toBe(
+  expect(chooseStateTemplate([t("java-25-standalone", false)])?.app).toBe(
     "java-25-standalone",
   );
-  expect(chooseStateTemplate([t("java-25-standalone", true)]).template).toBe(
+  expect(chooseStateTemplate([t("java-25-standalone", true)])?.template).toBe(
     "gradle",
   );
+  // Without variant metadata only maven counts, which is a base template: the spec skips.
+  expect(
+    chooseStateTemplate([template("java-25-standalone", true)]),
+  ).toBeUndefined();
 });
 
 test("parseConfig keeps what the suite needs and rejects the rest", () => {
