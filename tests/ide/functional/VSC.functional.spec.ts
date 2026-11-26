@@ -11,7 +11,7 @@ import { TheiaVSCView } from "../../../pages/ide/custom-pom/theia-vsc";
 const testPrefix = "VSC-";
 
 test.describe("Theia IDE VSC Tests", () => {
-  sessionForSpecs("python");
+  sessionForSpecs("ide");
   test.describe.configure({ mode: "serial" });
 
   test.use({
@@ -20,10 +20,10 @@ test.describe("Theia IDE VSC Tests", () => {
 
   const workspacePath = "vsc-test";
 
-  test.beforeAll(async ({ pythonApp }) => {
+  test.beforeAll(async ({ ideApp }) => {
     test.slow();
-    await pythonApp.createAndOpenWorkspace(workspacePath);
-    const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
+    await ideApp.createAndOpenWorkspace(workspacePath);
+    const terminal = await ideApp.theiaApp.openTerminal(TheiaTerminal);
     // runInTerminal waits for each command to finish before the next one.
     await runInTerminal(terminal, "git init");
     await runInTerminal(
@@ -35,18 +35,16 @@ test.describe("Theia IDE VSC Tests", () => {
     expect(status.exitCode).toBe(0);
   });
 
-  test.beforeEach(async ({ pythonApp }) => {
-    await pythonApp.openWorkspace(workspacePath);
-    await pythonApp.theiaApp.workspace.setPath(
-      "/home/project/" + workspacePath,
-    );
+  test.beforeEach(async ({ ideApp }) => {
+    await ideApp.openWorkspace(workspacePath);
+    await ideApp.theiaApp.workspace.setPath("/home/project/" + workspacePath);
   });
 
-  test("Commit", async ({ pythonApp }) => {
-    const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
+  test("Commit", async ({ ideApp }) => {
+    const terminal = await ideApp.theiaApp.openTerminal(TheiaTerminal);
     await expect(terminal.page.locator(terminal.viewSelector)).toBeVisible();
     await runInTerminal(terminal, "touch " + testPrefix + "Test1");
-    const vsc = await pythonApp.theiaApp.openView(TheiaVSCView);
+    const vsc = await ideApp.theiaApp.openView(TheiaVSCView);
     await vsc.commit("Initial commit");
     // HEAD only resolves once a commit exists.
     const head = await runInTerminal(terminal, "git rev-parse --verify HEAD");
@@ -55,12 +53,12 @@ test.describe("Theia IDE VSC Tests", () => {
 
   test.fixme("Push", async () => {});
 
-  test.afterAll(async ({ pythonApp }) => {
-    await pythonApp.openWorkspace("");
-    const terminal = await pythonApp.theiaApp.openTerminal(TheiaTerminal);
+  test.afterAll(async ({ ideApp }) => {
+    await ideApp.openWorkspace("");
+    const terminal = await ideApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
     await terminal.submit(TEST_FILE_CLEANUP);
     await terminal.submit("rm -rf .git");
   });
-  sessionAfterSpecs("python");
+  sessionAfterSpecs("ide");
 });

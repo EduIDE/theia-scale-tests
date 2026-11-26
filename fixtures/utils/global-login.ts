@@ -52,12 +52,12 @@ async function login(
   const browser = await chromium.launch();
   const context = await browser.newContext({ ignoreHTTPSErrors: true });
   const page = await context.newPage();
-  let step = "open the landing page";
+  let step = "start";
   try {
     const start = Date.now();
-    await page.goto(process.env.LANDINGPAGE_URL!);
     const landing = new LandingPage(page);
-    step = "log in on the Keycloak form";
+    // The landing page redirects to Keycloak at once, login opens it.
+    step = "open the landing page and log in on the Keycloak form";
     await landing.login(user, pwd);
     step = "wait for the logged-in landing page";
     await landing.waitForLoggedIn();
@@ -76,13 +76,12 @@ async function login(
     const keycloakError = await seen(
       "#input-error, .alert-error, .pf-m-danger, .kc-feedback-text",
     );
-    const loginButton = await seen('[data-testid="loginButton"]');
-    const logoutButton = await seen('[data-testid="logoutButton"]');
+    const accountButton = await seen("button.avatar");
     const authParamsLeft = /[?#&](code|state)=/.test(page.url());
     throw new LoginError(
       `Login failed at step "${step}" on ${origin(page)} ` +
         `(login form shown: ${loginForm}, error element shown: ${keycloakError}, ` +
-        `landing login button: ${loginButton}, landing logout button: ${logoutButton}, ` +
+        `landing account button: ${accountButton}, ` +
         `auth params still in URL: ${authParamsLeft})`,
       keycloakError,
     );

@@ -19,7 +19,6 @@ export async function ensureLogin() {
   console.log(process.env.LANDINGPAGE_URL!);
   console.log("🔑 Logging in and saving session...");
   const page = await context.newPage();
-  await page.goto(process.env.LANDINGPAGE_URL!);
   const landingPage = new LandingPage(page);
   await landingPage.login(
     process.env.KEYCLOAK_USER!,

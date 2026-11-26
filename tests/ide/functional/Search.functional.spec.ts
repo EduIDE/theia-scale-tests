@@ -20,24 +20,24 @@ import { getRandomWord } from "../../../fixtures/utils/commands";
 const testPrefix = "Search-";
 
 test.describe("IDE Search Tests", () => {
-  sessionForSpecs("javascript");
+  sessionForSpecs("ide");
   test.describe.configure({ mode: "serial" });
 
   const workspacePath = "search-test";
 
-  test.beforeAll(async ({ jsApp }) => {
-    await jsApp.createAndOpenWorkspace(workspacePath);
+  test.beforeAll(async ({ ideApp }) => {
+    await ideApp.createAndOpenWorkspace(workspacePath);
   });
 
-  test.beforeEach(async ({ jsApp }) => {
-    await jsApp.openWorkspace(workspacePath);
-    await jsApp.theiaApp.workspace.setPath("/home/project/" + workspacePath);
+  test.beforeEach(async ({ ideApp }) => {
+    await ideApp.openWorkspace(workspacePath);
+    await ideApp.theiaApp.workspace.setPath("/home/project/" + workspacePath);
   });
 
-  test("Search for text in the editor", async ({ jsApp }) => {
+  test("Search for text in the editor", async ({ ideApp }) => {
     const fileName = testPrefix + "Test1";
-    await jsApp.createNewFile(fileName);
-    const editor = await jsApp.theiaApp.openEditor(fileName, TheiaTextEditor);
+    await ideApp.createNewFile(fileName);
+    const editor = await ideApp.theiaApp.openEditor(fileName, TheiaTextEditor);
     await editor.activate();
     await editor.addTextToNewLineAfterLineByLineNumber(1, uniqueWords10);
     await editor.save();
@@ -48,16 +48,18 @@ test.describe("IDE Search Tests", () => {
     expect(line).toContain(randomWord!);
   });
 
-  test("Search for text using menu bar", async ({ jsApp }) => {
+  test("Search for text using menu bar", async ({ ideApp }) => {
     const fileName = testPrefix + "Test2";
     const randomWord = getRandomWord(uniqueWords10);
     expect(randomWord).not.toBeNull();
-    await jsApp.createNewFile(fileName);
-    const editor = await jsApp.theiaApp.openEditor(fileName, TheiaTextEditor);
+    await ideApp.createNewFile(fileName);
+    const editor = await ideApp.theiaApp.openEditor(fileName, TheiaTextEditor);
     await editor.activate();
     await editor.addTextToNewLineAfterLineByLineNumber(1, uniqueWords10);
     await editor.save();
-    await (await jsApp.theiaApp.menuBar.openMenu("Edit")).clickMenuItem("Find");
+    await (
+      await ideApp.theiaApp.menuBar.openMenu("Edit")
+    ).clickMenuItem("Find");
     await editor.page.keyboard.type(randomWord!);
     await expect(
       editor.page.locator(".editor-widget").locator(".input").first(),
@@ -70,16 +72,16 @@ test.describe("IDE Search Tests", () => {
     ).toBeDefined();
   });
 
-  test("Search for text using sidebar", async ({ jsApp }) => {
+  test("Search for text using sidebar", async ({ ideApp }) => {
     const fileName = testPrefix + "Test3";
     const randomWord = getRandomWord(uniqueWords10);
     expect(randomWord).not.toBeNull();
-    await jsApp.createNewFile(fileName);
-    const editor = await jsApp.theiaApp.openEditor(fileName, TheiaTextEditor);
+    await ideApp.createNewFile(fileName);
+    const editor = await ideApp.theiaApp.openEditor(fileName, TheiaTextEditor);
     await editor.activate();
     await editor.addTextToNewLineAfterLineByLineNumber(1, uniqueWords10);
     await editor.save();
-    const search = await jsApp.theiaApp.openView(TheiaSearchView);
+    const search = await ideApp.theiaApp.openView(TheiaSearchView);
     await search.search(randomWord!);
     const result = search.page
       .locator(search.viewSelector)
@@ -90,27 +92,27 @@ test.describe("IDE Search Tests", () => {
     await expect(result).toBeVisible();
   });
 
-  test("Search for text using sidebar multiple files", async ({ jsApp }) => {
+  test("Search for text using sidebar multiple files", async ({ ideApp }) => {
     const fileName = testPrefix + "Test4";
     const randomWord = getRandomWord(uniqueWords20);
     expect(randomWord).not.toBeNull();
-    await jsApp.createNewFile(fileName + "1");
-    await jsApp.createNewFile(fileName + "2");
-    const editor1 = await jsApp.theiaApp.openEditor(
+    await ideApp.createNewFile(fileName + "1");
+    await ideApp.createNewFile(fileName + "2");
+    const editor1 = await ideApp.theiaApp.openEditor(
       fileName + "1",
       TheiaTextEditor,
     );
     await editor1.activate();
     await editor1.addTextToNewLineAfterLineByLineNumber(1, uniqueWords20);
     await editor1.save();
-    const editor2 = await jsApp.theiaApp.openEditor(
+    const editor2 = await ideApp.theiaApp.openEditor(
       fileName + "2",
       TheiaTextEditor,
     );
     await editor2.activate();
     await editor2.addTextToNewLineAfterLineByLineNumber(1, uniqueWords20);
     await editor2.save();
-    const search = await jsApp.theiaApp.openView(TheiaSearchView);
+    const search = await ideApp.theiaApp.openView(TheiaSearchView);
     await search.search(randomWord!);
     // One result block per file that contains the word, and both files must
     // have one. The results fill in while the search runs, so this waits.
@@ -128,11 +130,11 @@ test.describe("IDE Search Tests", () => {
     }
   });
 
-  test.afterAll(async ({ jsApp }) => {
-    await jsApp.openWorkspace("");
-    const terminal = await jsApp.theiaApp.openTerminal(TheiaTerminal);
+  test.afterAll(async ({ ideApp }) => {
+    await ideApp.openWorkspace("");
+    const terminal = await ideApp.theiaApp.openTerminal(TheiaTerminal);
     await terminal.submit(`rm -rf ${workspacePath}`);
     await terminal.submit(TEST_FILE_CLEANUP);
   });
-  sessionAfterSpecs("javascript");
+  sessionAfterSpecs("ide");
 });

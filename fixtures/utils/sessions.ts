@@ -1,9 +1,8 @@
 import { Browser, Page, test, TestInfo } from "@playwright/test";
-import { LandingPage } from "../../pages/landing/LandingPage";
-import { BASE_TEMPLATES, TemplateSpec } from "./catalog";
+import { BASE_TEMPLATES, TEMPLATES, TemplateSpec } from "./catalog";
 import { launchIde, LaunchedIde } from "./launch";
 import { Held, takeLock, takeSlot } from "./locks";
-import { CloudService } from "./service";
+import { activeSessions, CloudService, unavailableReason } from "./service";
 
 /**
  * Sessions the functional specs may hold at the same time, and the same for the
@@ -18,11 +17,14 @@ const MAX_WAIT_MS = 20 * 60_000;
 
 /** Session URLs of the specs of this worker, by base template key. */
 export const sessionUrls: Record<string, string> = {};
+/** Keys whose spec block called sessionForSpecs, so a missing URL means its launch was skipped. */
+export const declaredSessions = new Set<string>();
 
 /** LOCAL_URL_<KEY> points at a local container instead of a launched session. */
 const LOCAL_KEYS: Record<string, string> = {
   c: "C",
   java: "JAVA",
+  ide: "JAVA",
   python: "PYTHON",
   rust: "RUST",
   javascript: "JS",
@@ -37,7 +39,7 @@ export interface Started extends LaunchedIde {
 }
 
 /**
- * Launches a template, in a fresh workspace if no session of it runs yet. A
+ * Launches a template variant, in a fresh workspace if no session of it runs yet. A
  * session that was already running (another run, or a leftover) is used but
  * never stopped by us, because it is not ours.
  */
@@ -47,29 +49,37 @@ export async function startSession(
   testInfo: TestInfo,
   opts: { keepOpen?: boolean; metricName?: string } = {},
 ): Promise<Started> {
-  const page = await browser.newPage();
-  await page.goto("/");
-  const cfg = await new LandingPage(page).config();
-  await page.close();
-  const service = await CloudService.fromStorage(
-    cfg,
-    process.env.LANDINGPAGE_URL!,
+  const service = await CloudService.fromStorage(process.env.LANDINGPAGE_URL!);
+  // Environments differ in what they offer, a missing template is no failure.
+  const reason = unavailableReason(
+    await service.listTemplates(),
+    spec,
+    TEMPLATES,
   );
+  test.skip(reason !== undefined, reason);
 
-  const owned = (await service.sessionsOf(spec)).length === 0;
+  // A Failed session is listed but a launch ignores it, it does not count.
+  const running = async () => activeSessions(await service.sessionsOf(spec));
+  const owned = (await running()).length === 0;
   if (owned && !(await service.resetWorkspace(spec).catch(() => false))) {
     testInfo.annotations.push({
       type: "workspace-not-reset",
-      description: `${spec.app} / ${spec.template}: the old workspace could not be removed, template files may be left over`,
+      description: `${spec.app} / ${spec.template}: the old workspace could not be removed or matched, template files may be left over`,
     });
   }
 
-  const launched = await launchIde(browser, spec, testInfo, opts.metricName);
+  const launched = await launchIde(
+    browser,
+    service,
+    spec,
+    testInfo,
+    opts.metricName,
+  );
   try {
     if (spec.app === "c-standalone") {
       await recordMakefileToolsPrompt(launched.page, testInfo);
     }
-    if ((await service.sessionsOf(spec)).length === 0) {
+    if ((await running()).length === 0) {
       throw new Error(
         `Launched ${spec.app} / ${spec.template}, but no session of it is listed`,
       );
@@ -150,11 +160,13 @@ const open_: Record<string, { held: Held[]; started?: Started }> = {};
  */
 export function sessionForSpecs(key: string) {
   const spec = BASE_TEMPLATES[key];
+  declaredSessions.add(key);
   test.beforeAll(async ({ browser }, testInfo) => {
     test.setTimeout(35 * 60_000);
-    if (localUrl(key)) return;
+    // Local containers take turns too: specs of one key share one instance.
     const held = await acquire(key, "functional", FUNCTIONAL_SLOTS);
     open_[key] = { held };
+    if (localUrl(key)) return;
     open_[key].started = await startSession(browser, spec, testInfo);
     sessionUrls[key] = open_[key].started!.url;
   });

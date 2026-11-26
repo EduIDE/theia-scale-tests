@@ -1,5 +1,9 @@
 import { test, expect, Page } from "@playwright/test";
-import { STATE_TEMPLATE as spec } from "../../fixtures/utils/catalog";
+import {
+  chooseStateTemplate,
+  TemplateSpec,
+} from "../../fixtures/utils/catalog";
+import { CloudService } from "../../fixtures/utils/service";
 import {
   checkTemplate,
   launchIde,
@@ -7,7 +11,6 @@ import {
   runInTerminal,
 } from "../../fixtures/utils/launch";
 import { Held } from "../../fixtures/utils/locks";
-import { CloudConfig } from "../../fixtures/utils/service";
 import {
   PLATFORM_SLOTS,
   Started,
@@ -15,7 +18,6 @@ import {
   release,
   startSession,
 } from "../../fixtures/utils/sessions";
-import { LandingPage } from "../../pages/landing/LandingPage";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWelcomeView } from "../../pages/ide/theia-pom/theia-welcome-view";
 
@@ -35,14 +37,26 @@ test.describe("Saved workspace", () => {
   let launched: LaunchedIde;
   let started: Started | undefined;
   let held: Held[] = [];
-  let cfg: CloudConfig;
+  let saved = false;
+  let spec: TemplateSpec;
 
   test.beforeAll(async ({ browser }, testInfo) => {
-    const page = await browser.newPage();
-    await page.goto("/");
-    cfg = await new LandingPage(page).config();
-    await page.close();
-    held = await acquire("platform-state", "platform", PLATFORM_SLOTS);
+    // The same lock as the remaining templates: this spec may pick one of them.
+    held = await acquire("platform-templates", "platform", PLATFORM_SLOTS);
+    const service = await CloudService.fromStorage(
+      process.env.LANDINGPAGE_URL!,
+    );
+    const templates = await service.listTemplates();
+    const chosen = chooseStateTemplate(templates);
+    // Like a missing template elsewhere: the environment decides what runs.
+    test.skip(
+      !chosen,
+      "No template of this environment fits the workspace spec",
+    );
+    spec = chosen!;
+    saved =
+      templates.find((t) => t.name === spec.app)?.defaultPersistence ===
+      "volume";
     started = await startSession(browser, spec, testInfo, { keepOpen: true });
     launched = started;
   });
@@ -63,12 +77,8 @@ test.describe("Saved workspace", () => {
   });
 
   test("Status bar shows the workspace mode of the app", async () => {
-    const app = cfg.additionalApps.find(
-      (a) => a.serviceAuthToken === spec.app,
-    )!;
-    const ephemeral = app.ephemeral ?? cfg.useEphemeralStorage;
     await expect(launched.page.locator(modeItem)).toContainText(
-      ephemeral ? "Temporary workspace" : "Saved workspace",
+      saved ? "Saved workspace" : "Temporary workspace",
       { timeout: 60_000 },
     );
   });
@@ -136,20 +146,24 @@ test.describe("Saved workspace", () => {
   });
 
   test("Files survive a session restart", async ({ browser }, testInfo) => {
+    test.skip(!saved, "the template has no saved workspace by default");
     const marker = `persisted-${Date.now()}`;
     const terminal = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     await runInTerminal(terminal, `echo ${marker} > e2e-persist.txt && sync`);
     await launched.page.context().close();
 
     await started!.service.stopTemplate(spec);
-    // Starting while the old session still counts as running is refused.
-    await expect
-      .poll(async () => (await started!.service.sessionsOf(spec)).length, {
-        timeout: 3 * 60_000,
-      })
-      .toBe(0);
+    // The list hides a session that is being deleted, so this holds at once. A
+    // new launch makes a new session even while the old pod is still ending.
+    expect(await started!.service.sessionsOf(spec)).toHaveLength(0);
 
-    launched = await launchIde(browser, spec, testInfo, "restart");
+    launched = await launchIde(
+      browser,
+      started!.service,
+      spec,
+      testInfo,
+      "restart",
+    );
     const after = await launched.ide.theiaApp.openTerminal(TheiaTerminal);
     const { output } = await runInTerminal(after, "cat e2e-persist.txt");
     expect(output).toContain(marker);

@@ -1,24 +1,31 @@
 import { test, expect } from "../../fixtures/theia.fixture";
 import { LOGOUT_SESSION_FILE } from "../../fixtures/utils/auth-files";
-import { TEMPLATES } from "../../fixtures/utils/catalog";
+import {
+  CloudService,
+  fetchConfig,
+  Template,
+} from "../../fixtures/utils/service";
 
 test.describe("Landing page (not logged in)", () => {
   test.use({ storageState: { cookies: [], origins: [] } });
 
-  test("Login sends the browser to the configured Keycloak", async ({
-    landingPage,
+  test("Opening the page sends the browser to the configured Keycloak", async ({
+    page,
   }) => {
-    const cfg = await landingPage.config();
-    await expect(landingPage.loginButton).toBeVisible();
-    // Keycloak forwards to an identity provider at once, so the page does not
-    // rest on the Keycloak URL. The request shows where the login went.
-    const request = landingPage.page.waitForRequest((r) =>
-      r.url().startsWith(new URL(cfg.keycloakAuthUrl).origin),
+    const { keycloak } = await fetchConfig();
+    // The page signs in at once, there is no login button. Keycloak forwards to
+    // an identity provider at once, so the page does not rest on the Keycloak
+    // URL and the request shows where the login went.
+    const request = page.waitForRequest((r) =>
+      r
+        .url()
+        .startsWith(
+          `${keycloak.url.replace(/\/$/, "")}/realms/${keycloak.realm}/protocol/openid-connect/auth`,
+        ),
     );
-    await landingPage.loginButton.click();
-    expect((await request).url()).toContain(
-      `/realms/${cfg.keycloakRealm}/protocol/openid-connect/auth`,
-    );
+    await page.goto("/");
+    const auth = new URL((await request).url());
+    expect(auth.searchParams.get("client_id")).toBe(keycloak.clientId);
   });
 });
 
@@ -29,58 +36,59 @@ test.describe("Logout", () => {
   // Logging out ends the stored session, so a retry could not log in again.
   test.describe.configure({ retries: 0 });
 
-  test("Logout returns to the login page", async ({ landingPage }) => {
+  test("Logout returns to the login", async ({ landingPage }) => {
     await landingPage.waitForLoggedIn();
     await landingPage.logout();
-    await expect(landingPage.loginButton).toBeVisible({ timeout: 30_000 });
+    // The page signs in at once, so the end of the session shows as a login
+    // prompt instead of the landing page.
+    await landingPage.waitForLoginPrompt();
   });
 });
 
 test.describe("Landing page (logged in)", () => {
+  let templates: Template[];
+  let listed: Template[];
+
+  test.beforeAll(async () => {
+    const service = await CloudService.fromStorage(
+      process.env.LANDINGPAGE_URL!,
+    );
+    templates = await service.listTemplates();
+    listed = templates.filter((t) => t.listed);
+  });
+
   test.beforeEach(async ({ landingPage }) => {
     await landingPage.waitForLoggedIn();
   });
 
-  test("Offers a tile per visible app with a matching badge", async ({
+  test("Offers a tile per listed template with a matching badge", async ({
     landingPage,
   }) => {
-    const cfg = await landingPage.config();
-    const visible = cfg.additionalApps.filter((a) => a.visible !== false);
-    const apps = [...new Set(TEMPLATES.map((t) => t.app))];
-    expect((await landingPage.tileApps()).sort()).toEqual(
-      visible.map((a) => a.serviceAuthToken).sort(),
-    );
-    for (const app of apps) {
-      await expect(landingPage.tile(app)).toBeVisible();
-    }
-    for (const app of visible) {
-      const ephemeral = app.ephemeral ?? cfg.useEphemeralStorage;
-      const badge = landingPage.badge(app.serviceAuthToken);
-      await expect(badge).toHaveAttribute(
-        "data-persistence",
-        ephemeral ? "temporary" : "saved",
+    expect(listed.length).toBeGreaterThan(0);
+    await landingPage.tile(listed[0].name, templates);
+    await expect(landingPage.tiles).toHaveCount(listed.length);
+    for (const [i, template] of listed.entries()) {
+      const saved = template.defaultPersistence === "volume";
+      await expect(landingPage.tiles.nth(i).locator(".tag")).toContainText(
+        saved ? "Saved" : "Temporary",
       );
-      await expect(badge).toContainText(ephemeral ? "Temporary" : "Saved");
     }
   });
 
-  test("Apps with several templates ask for a build system", async ({
+  test("Templates with variants ask for a project template", async ({
     landingPage,
   }) => {
-    const cfg = await landingPage.config();
-    const multi = cfg.additionalApps.filter(
-      (a) => a.visible !== false && (a.buildSystems?.length ?? 0) > 1,
+    const multi = listed.filter(
+      (t) => t.variants?.length && t.injectableKeys.includes("TEMPLATE"),
     );
-    expect(multi.length).toBeGreaterThan(0);
-    for (const app of multi) {
-      await landingPage.tile(app.serviceAuthToken).click();
-      for (const system of app.buildSystems!) {
-        await expect(
-          landingPage.page.getByTestId(`build-system-${system.id}`),
-        ).toBeVisible();
+    test.skip(multi.length === 0, "no listed template offers variants");
+    for (const template of multi) {
+      await (await landingPage.tile(template.name, templates)).click();
+      for (const id of [...template.variants!.map((v) => v.id), ""]) {
+        await expect(landingPage.variantOption(id)).toBeVisible();
       }
-      await landingPage.page.getByRole("button", { name: /Back/ }).click();
-      await expect(landingPage.tile(app.serviceAuthToken)).toBeVisible();
+      await landingPage.page.getByRole("button", { name: "Cancel" }).click();
+      await expect(landingPage.pickStart).toBeHidden();
     }
   });
 });

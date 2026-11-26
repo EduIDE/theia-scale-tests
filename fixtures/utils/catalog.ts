@@ -1,8 +1,13 @@
 /**
- * The apps and templates of EduIDE 3.0 as the landing page offers them.
- * Commands and expected output come from the template sources in
- * EduIDE/images/<lang>/templates/<template>/.vscode/tasks.json.
+ * The templates of EduIDE 3.0 and their variants as the landing page offers
+ * them. A spec's `app` is the name of a template in GET /templates and its
+ * `template` the id of one of its variants (the project template a launch
+ * sends as data.TEMPLATE). Which of them an environment offers is checked at
+ * run time, see unavailableReason. Commands and expected output come from the
+ * template sources in EduIDE/images/<lang>/templates/<template>/.vscode/tasks.json.
  */
+import { Template, unavailableReason } from "./service";
+
 export interface Task {
   label: string;
   command: string;
@@ -125,17 +130,41 @@ export const TEMPLATES: TemplateSpec[] = [
 export const BASE_TEMPLATES: Record<string, TemplateSpec> = {
   c: find("c-standalone", "make"),
   java: find("java-17-standalone", "maven"),
+  // Editor, search, terminal and Git specs: a Java template, which every environment offers.
+  ide: find("java-25-standalone", "maven"),
   python: find("python-standalone", "python"),
   rust: find("rust-standalone", "cargo"),
   javascript: find("javascript-standalone", "node"),
 };
 
-/** Its session is restarted and its experience level changed, so nothing else may use it. */
-export const STATE_TEMPLATE = find("go-standalone", "go");
-
 export const EXTRA_TEMPLATES = TEMPLATES.filter(
-  (t) => !Object.values(BASE_TEMPLATES).includes(t) && t !== STATE_TEMPLATE,
+  (t) => !Object.values(BASE_TEMPLATES).includes(t),
 );
+
+/**
+ * The spec the workspace spec restarts and changes the experience level of,
+ * chosen from what the environment offers: a Java template with a saved
+ * workspace first, then any saved one, then any. A base template is never
+ * taken, the other specs work in its session. Undefined when nothing fits.
+ */
+export function chooseStateTemplate(
+  templates: Template[],
+): TemplateSpec | undefined {
+  const offered = EXTRA_TEMPLATES.filter((spec) => {
+    try {
+      return unavailableReason(templates, spec, TEMPLATES) === undefined;
+    } catch {
+      return false;
+    }
+  });
+  const rank = (spec: TemplateSpec) => {
+    const saved =
+      templates.find((t) => t.name === spec.app)?.defaultPersistence ===
+      "volume";
+    return /^java-.*-standalone$/.test(spec.app) && saved ? 0 : saved ? 1 : 2;
+  };
+  return [...offered].sort((a, b) => rank(a) - rank(b))[0];
+}
 
 function find(app: string, template: string): TemplateSpec {
   const spec = TEMPLATES.find((t) => t.app === app && t.template === template);

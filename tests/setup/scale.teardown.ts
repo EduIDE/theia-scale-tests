@@ -1,21 +1,18 @@
 import { test as teardown } from "@playwright/test";
-import { LandingPage } from "../../pages/landing/LandingPage";
+import { TEMPLATES } from "../../fixtures/utils/catalog";
 import { CloudService } from "../../fixtures/utils/service";
 
 /** Stops what scale-setup launched, so it does not count against the session limit. */
-teardown("Stop the scale sessions", async ({ browser }) => {
-  const page = await browser.newPage();
-  await page.goto("/");
-  const cfg = await new LandingPage(page).config();
-  await page.close();
+teardown("Stop the scale sessions", async () => {
   const app = process.env.BENCH_TARGET_APP || "java-17-standalone";
-  const systems =
-    cfg.additionalApps.find((a) => a.serviceAuthToken === app)?.buildSystems ??
-    [];
-  const template = process.env.BENCH_TARGET_TEMPLATE || systems[0]?.id || "";
-  const service = await CloudService.fromStorage(
-    cfg,
-    process.env.LANDINGPAGE_URL!,
-  );
+  const service = await CloudService.fromStorage(process.env.LANDINGPAGE_URL!);
+  const templates = await service.listTemplates();
+  // The variant the setup launched. Never an empty one, which would match
+  // every session of the template.
+  const template =
+    process.env.BENCH_TARGET_TEMPLATE ||
+    templates.find((t) => t.name === app)?.variants?.[0]?.id ||
+    TEMPLATES.find((t) => t.app === app)?.template;
+  if (!template) throw new Error(`No variant to stop for ${app}`);
   await service.stopTemplate({ app, template });
 });

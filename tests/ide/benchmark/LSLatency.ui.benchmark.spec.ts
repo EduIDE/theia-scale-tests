@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import path from "path";
 
 import { LandingPage } from "../../../pages/landing/LandingPage";
+import { CloudService } from "../../../fixtures/utils/service";
 import { TheiaApp } from "../../../pages/ide/theia-pom/theia-app";
 import { TheiaExplorerView } from "../../../pages/ide/theia-pom/theia-explorer-view";
 import { TheiaOutputView } from "../../../pages/ide/theia-pom/theia-output-view";
@@ -133,8 +134,12 @@ test("ui diagnostic latency benchmark skeleton", async ({ page }) => {
   await page.goto("/");
   const landingPage = new LandingPage(page);
   const startupStartedAt = Date.now();
-  await landingPage.launch(targetApp, process.env.BENCH_TARGET_TEMPLATE);
-  await page.waitForURL(/.*#\/home\/project/, { timeout: setupTimeoutMs });
+  const service = await CloudService.fromStorage(process.env.LANDINGPAGE_URL!);
+  await landingPage.launch(
+    { app: targetApp, template: process.env.BENCH_TARGET_TEMPLATE },
+    await service.listTemplates(),
+  );
+  await landingPage.waitForIdeUrl(setupTimeoutMs);
 
   const workspace = new TheiaWorkspace();
   workspace.setPath("/home/project");

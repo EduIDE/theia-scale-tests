@@ -5,6 +5,7 @@ import { TheiaApp } from "../../pages/ide/theia-pom/theia-app";
 import { TheiaTerminal } from "../../pages/ide/theia-pom/theia-terminal";
 import { TheiaWorkspace } from "../../pages/ide/theia-pom/theia-workspace";
 import { TemplateSpec, Task } from "./catalog";
+import type { CloudService } from "./service";
 import { SESSION_FILE } from "./auth-files";
 import { recordMetric } from "./metrics";
 
@@ -17,11 +18,12 @@ export interface LaunchedIde {
 }
 
 /**
- * Launches an app and template from the landing page and waits until the IDE
- * is usable. The caller owns the returned page.
+ * Launches a template and variant from the landing page and waits until the
+ * IDE is usable. The caller owns the returned page.
  */
 export async function launchIde(
   browser: Browser,
+  service: CloudService,
   spec: Pick<TemplateSpec, "app" | "template">,
   testInfo?: TestInfo,
   metricName = "launch",
@@ -36,8 +38,9 @@ export async function launchIde(
   await page.goto("/");
   const landing = new LandingPage(page);
   await landing.waitForLoggedIn();
+  const templates = await service.listTemplates();
   const start = Date.now();
-  await landing.launch(spec.app, spec.template);
+  await landing.launch(spec, templates);
   await landing.waitForIdeUrl();
   const url = page.url();
   const workspace = new TheiaWorkspace();
