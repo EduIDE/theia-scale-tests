@@ -583,7 +583,7 @@ async function writeEditorBaseline(
       return;
     }
 
-    debugLog("benchmark", "baseline mismatch — retrying", {
+    debugLog("benchmark", "baseline mismatch - retrying", {
       attempt,
       lines: stripped.slice(-4),
     });
