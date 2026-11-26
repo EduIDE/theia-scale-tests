@@ -15,7 +15,7 @@ export default defineConfig(
   includeIgnoreFile(gitignorePath),
   globalIgnores(["pages/ide/theia-pom"]),
   {
-    files: ["scripts/**/*.mjs"],
+    files: ["scripts/**/*.mjs", "startup-bench/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
 );

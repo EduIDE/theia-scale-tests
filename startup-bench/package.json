@@ -1,0 +1,11 @@
+{
+  "name": "startup-bench",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test lib.test.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.65.1"
+  }
+}
